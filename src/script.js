@@ -1,4 +1,4 @@
-console.log("Welcome to Guitar Theory Visualizer!");
+const STANDARD_TUNING = [4, 9, 2, 7, 11, 4];
 
 // Map of semitones for each note
 const semitoneMap = {
@@ -16,8 +16,11 @@ const semitoneMap = {
   "B": 11
 };
 
+// TODO: add a check for if user has modified the tuning
+let customTuning = null;
+
 // Default tuning variable (standard E, A, D, G, B, E)
-let tuning = [4, 9, 2, 7, 11, 4];
+let tuning = customTuning ? customTuning : STANDARD_TUNING;
 
 // Function to update tuning (can be expanded later for custom tunings)
 function setTuning(newTuning) {
