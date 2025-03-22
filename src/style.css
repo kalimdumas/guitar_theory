@@ -24,6 +24,16 @@ h1 {
   display: flex;
 }
 
+/* Only the top string row gets a top border */
+#fretboard .string-row:first-child {
+  border-top: 2px solid #fff;
+}
+
+/* Only the bottom string row gets a bottom border */
+#fretboard .string-row:last-child {
+  border-bottom: 2px solid #fff;
+}
+
 /* Container for arrows and label (aligned horizontally) */
 .string-label-container {
   display: flex;
@@ -57,7 +67,20 @@ h1 {
 .fret {
   width: 40px;
   height: 40px;
-  border: 1px solid #555;  /* Subtle border for frets */
-  background-color: #333;  /* Dark cell background */
+  position: relative; /* For positioning the center line */
+  border-left: 1px solid #555;  /* Keep left border */
+  border-right: 1px solid #555; /* Keep right border */
+  background-color: #222;       /* Same background as fretboard */
+}
+
+/* Thick horizontal line running through the center of each fret */
+.fret::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 0;
+  right: 0;
+  border-top: 3px solid #fff; /* Thick horizontal center line */
+  transform: translateY(-50%);
 }
 
