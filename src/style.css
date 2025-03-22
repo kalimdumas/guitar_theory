@@ -24,10 +24,31 @@ h1 {
   display: flex;
 }
 
-/* String label on the left side */
+/* Container for arrows and label (aligned horizontally) */
+.string-label-container {
+  display: flex;
+  align-items: center; /* Vertically center items */
+  margin-right: 10px;  /* Space between label container and fret cells */
+}
+
+/* Container to stack up/down arrows vertically */
+.arrow-container {
+  display: flex;
+  flex-direction: column; /* Stack arrows vertically */
+  align-items: center;
+  margin-right: 5px;      /* Space between arrows and label */
+}
+
+/* Up and down arrows styling */
+.arrow {
+  cursor: pointer;
+  user-select: none;
+  line-height: 1;
+}
+
+/* String label styling */
 .string-label {
   width: 30px;
-  margin-right: 5px;
   text-align: right;
   font-weight: bold;
 }
