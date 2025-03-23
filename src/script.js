@@ -37,11 +37,9 @@ const DIATONIC_CHUNKS = [
   new DiatonicChunk(2, "Min Triad", [0, 3, 7]),
   new DiatonicChunk(3, "Maj Pentatonic", [0, 2, 4, 7, 9]),
   new DiatonicChunk(4, "Min Pentatonic", [0, 3, 5, 7, 10])
-  // Add or remove more as needed
 ];
 
-// Define available root notes (12 semitones). 
-// Each key in `semitoneMap` can be used as the dropdown label.
+// Define available root notes (12 semitones).
 const ROOT_NOTES = Object.keys(semitoneMap);
 
 // Define some example colors
@@ -51,13 +49,12 @@ const AVAILABLE_COLORS = ["red", "blue", "green", "yellow", "purple", "orange"];
 let customTuning = null;
 let tuning = customTuning ? customTuning : STANDARD_TUNING;
 
-// We no longer use a single highlightSemitone. Instead, we allow multiple highlights.
-let highlightRows = []; // Each entry: { rootSemitone, chunk, color }
+// We store multiple highlight instructions here:
+let highlightRows = []; // each entry: { rootSemitone, chunk, color }
 
 /****************************
  *  Helper Functions
  ****************************/
-// Convert numeric semitone to note name (for display if needed)
 function getNoteNameFromValue(value) {
   const normalized = ((value % 12) + 12) % 12;
   for (const note in semitoneMap) {
@@ -76,7 +73,7 @@ function setTuning(newTuning) {
 /****************************
  *  getColorForFretValue
  *  Determines which color (if any) should highlight this fret,
- *  based on the user's highlightRows.
+ *  based on all the user’s highlightRows.
  ****************************/
 function getColorForFretValue(fretValue) {
   let color = null;
@@ -87,7 +84,7 @@ function getColorForFretValue(fretValue) {
     let difference = (fretValue - row.rootSemitone) % 12;
     difference = (difference + 12) % 12; // ensure positive
     if (row.chunk.values.includes(difference)) {
-      color = row.color;
+      color = row.color; // Overwrite with the most recent highlight
     }
   });
   return color;

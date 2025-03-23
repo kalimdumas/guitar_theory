@@ -44,7 +44,7 @@ h1 {
   margin-bottom: 20px;
 }
 
-/* highlight-panel (or multi-dropdown panel) can stay in control-panel or separate */
+/* highlight-panel (the multi-dropdown panel) can be part of control-panel */
 #highlight-panel {
   margin-top: 20px;
   display: flex;
@@ -93,7 +93,7 @@ h1 {
   font-weight: bold;
 }
 
-/* Fret cells: default 40×40 */
+/* Fret cells: default 40×40 to match “original” screenshot. */
 .fret {
   width: 40px;
   height: 40px;
@@ -114,7 +114,7 @@ h1 {
   transform: translateY(-50%);
 }
 
-/* Dot for highlighted frets (color is set dynamically) */
+/* Dot for highlighted frets (color is set dynamically in JS) */
 .fret-highlight {
   position: absolute;
   top: 50%;
