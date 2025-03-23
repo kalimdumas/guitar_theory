@@ -1,8 +1,7 @@
-/* Page styling */
 body {
   margin: 0;
-  background-color: #222;  /* Dark background */
-  color: #fff;             /* White text */
+  background-color: #222;
+  color: #fff;
   font-family: Arial, sans-serif;
   text-align: center;
 }
@@ -11,53 +10,94 @@ h1 {
   margin-top: 20px;
 }
 
-/* Fretboard styling */
-#fretboard {
-  display: inline-block;
+#main-container {
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
   margin-top: 20px;
-  padding: 10px;
-  border: 2px solid #fff;  /* White border around fretboard */
 }
 
-/* Each row represents a guitar string */
+#control-panel {
+  margin-right: 20px;
+}
+
+#fretboard {
+  display: inline-block;
+  padding: 10px;
+  border: 2px solid #fff;
+}
+
+#highlight-panel {
+  margin-left: 20px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  align-items: center;
+}
+
 .string-row {
   display: flex;
 }
 
-/* Container for arrows and label (aligned horizontally) */
+.string-row.extra {
+  opacity: 0.5;
+}
+
 .string-label-container {
   display: flex;
-  align-items: center; /* Vertically center items */
-  margin-right: 10px;  /* Space between label container and fret cells */
+  align-items: center;
+  margin-right: 10px;
 }
 
-/* Container to stack up/down arrows vertically */
 .arrow-container {
   display: flex;
-  flex-direction: column; /* Stack arrows vertically */
+  flex-direction: column;
   align-items: center;
-  margin-right: 5px;      /* Space between arrows and label */
+  margin-right: 5px;
 }
 
-/* Up and down arrows styling */
 .arrow {
   cursor: pointer;
   user-select: none;
   line-height: 1;
 }
 
-/* String label styling */
 .string-label {
   width: 30px;
   text-align: right;
   font-weight: bold;
 }
 
-/* Individual fret cells */
 .fret {
   width: 40px;
   height: 40px;
-  border: 1px solid #555;  /* Subtle border for frets */
-  background-color: #333;  /* Dark cell background */
+  position: relative;
+  border-left: 1px solid #555;
+  border-right: 1px solid #555;
+  background-color: #222;
+}
+
+.fret::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 0;
+  right: 0;
+  border-top: 3px solid #fff;
+  transform: translateY(-50%);
+}
+
+/* The fret values are no longer displayed */
+/* .fret-value { ... } */
+
+.fret-highlight {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 15px;
+  height: 15px;
+  border-radius: 50%;
+  background-color: red;
 }
 

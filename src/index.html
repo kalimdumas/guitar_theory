@@ -9,10 +9,27 @@
 <body>
   <h1>Guitar Music Theory Visualizer</h1>
   <p>Welcome to the guitar music theory visualization tool.</p>
-
-  <!-- Fretboard Container -->
-  <div id="fretboard"></div>
-
+  <div id="main-container">
+    <div id="control-panel">
+      <label>
+         <input type="checkbox" id="extra-rows-toggle">
+         Additional Stringrows
+      </label>
+      <div id="extra-rows-input" style="display:none;">
+         <label>Rows Above: <input type="number" id="rows-above" value="0" min="0"></label>
+         <br>
+         <label>Rows Below: <input type="number" id="rows-below" value="0" min="0"></label>
+         <br>
+         <button id="apply-extra-rows">Apply</button>
+      </div>
+    </div>
+    <div id="fretboard"></div>
+    <div id="highlight-panel">
+      <label for="note-input">Highlight Note:</label>
+      <input type="text" id="note-input" placeholder="e.g. C#" />
+      <button id="apply-note">Apply</button>
+    </div>
+  </div>
   <script src="script.js"></script>
 </body>
 </html>
