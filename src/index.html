@@ -15,7 +15,7 @@
     <div id="control-panel">
       <!-- Extra rows toggle and inputs -->
       <label>
-         <input type="checkbox" id="extra-rows-toggle" checked>
+         <input type="checkbox" id="extra-rows-toggle">
          Additional Stringrows
       </label>
       <div id="extra-rows-input">
@@ -30,25 +30,9 @@
          <button id="apply-extra-rows">Apply</button>
       </div>
 
-      <!-- Three dropdowns + "Add Row" / "Apply" -->
+      <!-- Highlight dropdowns container and buttons -->
       <div id="highlight-panel">
-        <div>
-          <label for="root-dropdown">Root:</label>
-          <select id="root-dropdown"></select>
-        </div>
-
-        <div>
-          <label for="chunk-dropdown">Chunk:</label>
-          <select id="chunk-dropdown"></select>
-        </div>
-
-        <div>
-          <label for="color-dropdown">Color:</label>
-          <select id="color-dropdown"></select>
-        </div>
-
-        <br>
-
+        <div id="highlight-rows-container"></div>
         <button id="add-row-button">Add Row</button>
         <button id="apply-button">Apply</button>
       </div>

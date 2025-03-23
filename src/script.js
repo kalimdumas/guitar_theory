@@ -21,12 +21,12 @@ const semitoneMap = {
   "B": 11
 };
 
-// Class representing a diatonic chunk (like a major triad or a pentatonic scale)
+// Class representing a diatonic chunk
 class DiatonicChunk {
   constructor(id, name, values) {
-    this.id = id;         // integer ID
-    this.name = name;     // user-friendly name
-    this.values = values; // array of semitones relative to the root
+    this.id = id;
+    this.name = name;
+    this.values = values;
   }
 }
 
@@ -39,17 +39,15 @@ const DIATONIC_CHUNKS = [
   new DiatonicChunk(4, "Min Pentatonic", [0, 3, 5, 7, 10])
 ];
 
-// Define available root notes (12 semitones).
+// Define available root notes and colors
 const ROOT_NOTES = Object.keys(semitoneMap);
-
-// Define some example colors
 const AVAILABLE_COLORS = ["red", "blue", "green", "yellow", "purple", "orange"];
 
 // Custom tuning (if any)
 let customTuning = null;
 let tuning = customTuning ? customTuning : STANDARD_TUNING;
 
-// We store multiple highlight instructions here:
+// We'll build highlightRows on the fly from the current dropdown sets.
 let highlightRows = []; // each entry: { rootSemitone, chunk, color }
 
 /****************************
@@ -72,19 +70,16 @@ function setTuning(newTuning) {
 
 /****************************
  *  getColorForFretValue
- *  Determines which color (if any) should highlight this fret,
- *  based on all the user’s highlightRows.
  ****************************/
 function getColorForFretValue(fretValue) {
   let color = null;
-  // If multiple highlight rows match, we use the last match’s color
+  // Iterate through highlightRows in DOM order (top-to-bottom).
+  // Later rows override earlier ones.
   highlightRows.forEach((row) => {
-    // row.rootSemitone + each value in row.chunk.values
-    // We check if (fretValue - root) % 12 is in row.chunk.values
     let difference = (fretValue - row.rootSemitone) % 12;
-    difference = (difference + 12) % 12; // ensure positive
+    difference = (difference + 12) % 12;
     if (row.chunk.values.includes(difference)) {
-      color = row.color; // Overwrite with the most recent highlight
+      color = row.color;
     }
   });
   return color;
@@ -100,11 +95,9 @@ function createStringRow(value, interactive, index, customLabel) {
     row.classList.add("extra");
   }
   
-  // Label container
   const labelContainer = document.createElement("div");
   labelContainer.classList.add("string-label-container");
   
-  // Arrows
   const arrowContainer = document.createElement("div");
   arrowContainer.classList.add("arrow-container");
   
@@ -116,14 +109,12 @@ function createStringRow(value, interactive, index, customLabel) {
   downArrow.textContent = "▼";
   downArrow.classList.add("arrow");
   
-  // Label text
   const stringLabel = document.createElement("div");
   stringLabel.classList.add("string-label");
   stringLabel.textContent = (customLabel !== undefined)
     ? customLabel
     : getNoteNameFromValue(value);
 
-  // Only interactive if it's part of the main tuning
   if (interactive) {
     upArrow.addEventListener("click", () => {
       tuning[index] = (tuning[index] + 1) % 12;
@@ -136,7 +127,6 @@ function createStringRow(value, interactive, index, customLabel) {
       createFretboard(getExtraAbove(), getExtraBelow());
     });
   } else {
-    // Hide arrows if it's an extra row
     upArrow.classList.add("hide-arrow");
     downArrow.classList.add("hide-arrow");
   }
@@ -147,7 +137,6 @@ function createStringRow(value, interactive, index, customLabel) {
   labelContainer.appendChild(stringLabel);
   row.appendChild(labelContainer);
   
-  // Determine base value for the string
   let baseValue;
   if (customLabel !== undefined) {
     let note = customLabel.toUpperCase();
@@ -156,7 +145,6 @@ function createStringRow(value, interactive, index, customLabel) {
     baseValue = value;
   }
 
-  // Create fret cells
   const numFrets = 18;
   for (let f = 1; f <= numFrets; f++) {
     const fret = document.createElement("div");
@@ -164,7 +152,6 @@ function createStringRow(value, interactive, index, customLabel) {
     const fretValue = baseValue + f;
     fret.setAttribute("data-fret-value", fretValue);
     
-    // Determine if we should highlight this fret
     const color = getColorForFretValue(fretValue);
     if (color) {
       const highlightCircle = document.createElement("div");
@@ -196,20 +183,17 @@ function createFretboard(extraAbove = 5, extraBelow = 5) {
   
   const reverseCycle = cycle.slice().reverse();
 
-  // Extra rows above
   for (let i = 0; i < extraAbove; i++) {
     const label = reverseCycle[i % reverseCycle.length];
     const row = createStringRow(0, false, undefined, label);
     fretboard.insertBefore(row, fretboard.firstChild);
   }
 
-  // Main tuning rows
   tuning.forEach((value, index) => {
     const row = createStringRow(value, true, index);
     fretboard.appendChild(row);
   });
   
-  // Extra rows below
   const bottomLabel = mainLabels[mainLabels.length - 1];
   const bottomIndexInCycle = cycle.indexOf(bottomLabel);
   for (let i = 1; i <= extraBelow; i++) {
@@ -240,77 +224,132 @@ function getExtraBelow() {
 }
 
 /****************************
- *  Dropdown Handling
+ *  Highlight Dropdowns
  ****************************/
-
-// Populate the dropdowns (root note, chunk, color) on page load
-function populateDropdowns() {
-  const rootDropdown = document.getElementById("root-dropdown");
-  const chunkDropdown = document.getElementById("chunk-dropdown");
-  const colorDropdown = document.getElementById("color-dropdown");
-
-  // 1) Root notes
-  ROOT_NOTES.forEach((note) => {
-    const option = document.createElement("option");
-    option.value = note; 
-    option.textContent = note; 
-    rootDropdown.appendChild(option);
+function createHighlightRow() {
+  const container = document.createElement("div");
+  container.classList.add("highlight-row");
+  
+  // Create reorder container with up/down arrows
+  const reorderContainer = document.createElement("div");
+  reorderContainer.classList.add("reorder-container");
+  
+  const upArrow = document.createElement("button");
+  upArrow.textContent = "↑";
+  upArrow.classList.add("reorder-button");
+  upArrow.addEventListener("click", () => {
+    const currentRow = container;
+    const parent = currentRow.parentElement;
+    const previous = currentRow.previousElementSibling;
+    if (previous) {
+      parent.insertBefore(currentRow, previous);
+    }
   });
-
-  // 2) Diatonic chunks
-  DIATONIC_CHUNKS.forEach((chunk) => {
+  
+  const downArrow = document.createElement("button");
+  downArrow.textContent = "↓";
+  downArrow.classList.add("reorder-button");
+  downArrow.addEventListener("click", () => {
+    const currentRow = container;
+    const parent = currentRow.parentElement;
+    const next = currentRow.nextElementSibling;
+    if (next) {
+      parent.insertBefore(next, currentRow);
+    }
+  });
+  
+  reorderContainer.appendChild(upArrow);
+  reorderContainer.appendChild(downArrow);
+  
+  // Create remove button (to the right of arrows)
+  const removeButton = document.createElement("button");
+  removeButton.textContent = "Remove";
+  removeButton.classList.add("remove-button");
+  removeButton.addEventListener("click", () => {
+    container.remove();
+  });
+  
+  // Append reorder container and remove button to the highlight row container
+  container.appendChild(reorderContainer);
+  container.appendChild(removeButton);
+  
+  // Root dropdown
+  const rootDiv = document.createElement("div");
+  const rootLabel = document.createElement("label");
+  rootLabel.textContent = "Root: ";
+  const rootSelect = document.createElement("select");
+  rootSelect.classList.add("root-dropdown");
+  ROOT_NOTES.forEach(note => {
+    const option = document.createElement("option");
+    option.value = note;
+    option.textContent = note;
+    rootSelect.appendChild(option);
+  });
+  rootLabel.appendChild(rootSelect);
+  rootDiv.appendChild(rootLabel);
+  
+  // Chunk dropdown
+  const chunkDiv = document.createElement("div");
+  const chunkLabel = document.createElement("label");
+  chunkLabel.textContent = "Chunk: ";
+  const chunkSelect = document.createElement("select");
+  chunkSelect.classList.add("chunk-dropdown");
+  DIATONIC_CHUNKS.forEach(chunk => {
     const option = document.createElement("option");
     option.value = chunk.id;
     option.textContent = chunk.name;
-    chunkDropdown.appendChild(option);
+    chunkSelect.appendChild(option);
   });
-
-  // 3) Colors
-  AVAILABLE_COLORS.forEach((col) => {
+  chunkLabel.appendChild(chunkSelect);
+  chunkDiv.appendChild(chunkLabel);
+  
+  // Color dropdown
+  const colorDiv = document.createElement("div");
+  const colorLabel = document.createElement("label");
+  colorLabel.textContent = "Color: ";
+  const colorSelect = document.createElement("select");
+  colorSelect.classList.add("color-dropdown");
+  AVAILABLE_COLORS.forEach(color => {
     const option = document.createElement("option");
-    option.value = col;
-    option.textContent = col[0].toUpperCase() + col.slice(1);
-    colorDropdown.appendChild(option);
+    option.value = color;
+    option.textContent = color[0].toUpperCase() + color.slice(1);
+    colorSelect.appendChild(option);
   });
+  colorLabel.appendChild(colorSelect);
+  colorDiv.appendChild(colorLabel);
+  
+  container.appendChild(rootDiv);
+  container.appendChild(chunkDiv);
+  container.appendChild(colorDiv);
+  
+  return container;
 }
 
-/****************************
- *  Add/Apply Buttons
- ****************************/
-function addHighlightRow() {
-  // Grab the user’s selections
-  const rootDropdown = document.getElementById("root-dropdown");
-  const chunkDropdown = document.getElementById("chunk-dropdown");
-  const colorDropdown = document.getElementById("color-dropdown");
-
-  const rootNote = rootDropdown.value; // e.g. "C#/Db"
-  const chunkId = parseInt(chunkDropdown.value, 10);
-  const color = colorDropdown.value;
-
-  // Convert root note to semitone
-  const rootSemitone = semitoneMap[rootNote.toUpperCase()] || 0;
-
-  // Find the chunk object by ID
-  const chunkObj = DIATONIC_CHUNKS.find((c) => c.id === chunkId);
-
-  if (!chunkObj) return;
-
-  // Store the user’s highlight row
-  highlightRows.push({
-    rootSemitone: rootSemitone,
-    chunk: chunkObj,
-    color: color
-  });
-
-  console.log("Added highlight row:", {
-    rootSemitone: rootSemitone,
-    chunk: chunkObj,
-    color: color
-  });
+function addHighlightDropdownRow() {
+  const container = document.getElementById("highlight-rows-container");
+  const newRow = createHighlightRow();
+  container.appendChild(newRow);
 }
 
 function applyHighlights() {
-  // Re-render the fretboard using all highlightRows
+  // Clear previous highlightRows
+  highlightRows = [];
+  const rows = document.querySelectorAll(".highlight-row");
+  rows.forEach(row => {
+    const rootVal = row.querySelector(".root-dropdown").value;
+    const chunkId = parseInt(row.querySelector(".chunk-dropdown").value, 10);
+    const color = row.querySelector(".color-dropdown").value;
+    const rootSemitone = semitoneMap[rootVal.toUpperCase()] || 0;
+    const chunkObj = DIATONIC_CHUNKS.find(c => c.id === chunkId);
+    if (chunkObj) {
+      highlightRows.push({
+        rootSemitone: rootSemitone,
+        chunk: chunkObj,
+        color: color
+      });
+    }
+  });
+  console.log("Applying highlights:", highlightRows);
   createFretboard(getExtraAbove(), getExtraBelow());
 }
 
@@ -318,32 +357,27 @@ function applyHighlights() {
  *  DOM Ready
  ****************************/
 document.addEventListener("DOMContentLoaded", function() {
-  // Extra row toggling
+  // Extra rows toggle and apply
   const toggle = document.getElementById("extra-rows-toggle");
   const extraRowsInput = document.getElementById("extra-rows-input");
   
   toggle.addEventListener("change", () => {
-    if (toggle.checked) {
-      extraRowsInput.style.display = "block";
-    } else {
-      extraRowsInput.style.display = "none";
-    }
+    extraRowsInput.style.display = toggle.checked ? "block" : "none";
     createFretboard(getExtraAbove(), getExtraBelow());
   });
   
-  // Apply extra rows
-  const applyButton = document.getElementById("apply-extra-rows");
-  applyButton.addEventListener("click", () => {
+  document.getElementById("apply-extra-rows").addEventListener("click", () => {
     createFretboard(getExtraAbove(), getExtraBelow());
   });
-
-  // Populate the new dropdowns
-  populateDropdowns();
-
-  // "Add Row" & "Apply" for highlighting
-  document.getElementById("add-row-button").addEventListener("click", addHighlightRow);
+  
+  // Create an initial highlight dropdown row
+  const container = document.getElementById("highlight-rows-container");
+  container.appendChild(createHighlightRow());
+  
+  // Add row and apply button events
+  document.getElementById("add-row-button").addEventListener("click", addHighlightDropdownRow);
   document.getElementById("apply-button").addEventListener("click", applyHighlights);
-
+  
   // Initial fretboard render
   createFretboard(getExtraAbove(), getExtraBelow());
 });

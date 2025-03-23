@@ -20,7 +20,6 @@ h1 {
   padding: 0 10px;
 }
 
-/* When the screen is narrow, stack everything vertically */
 @media (max-width: 900px) {
   #main-container {
     flex-direction: column;
@@ -39,12 +38,11 @@ h1 {
   display: inline-block;
   padding: 10px;
   border: 2px solid #fff;
-  /* Allow horizontal scrolling if screen is too narrow */
   overflow-x: auto;
   margin-bottom: 20px;
 }
 
-/* highlight-panel (the multi-dropdown panel) can be part of control-panel */
+/* Highlight panel */
 #highlight-panel {
   margin-top: 20px;
   display: flex;
@@ -52,17 +50,55 @@ h1 {
   align-items: flex-start;
 }
 
+/* Container for all highlight rows */
+#highlight-rows-container {
+  margin-bottom: 10px;
+}
+
+/* Each highlight row (set of three dropdowns) */
+.highlight-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 5px;
+  padding: 5px;
+}
+
+/* Reorder container and buttons styling */
+.reorder-container {
+  display: flex;
+  flex-direction: column;
+  margin-right: 8px;
+}
+
+.reorder-button {
+  background: none;
+  border: none;
+  color: #fff;
+  font-size: 1.2em;
+  cursor: pointer;
+  padding: 0 2px;
+}
+
+/* Remove button styling */
+.remove-button {
+  background: none;
+  border: none;
+  color: #fff;
+  font-size: 1em;
+  cursor: pointer;
+  margin-left: 5px;
+}
+
 /* Each row represents a guitar string */
 .string-row {
   display: flex;
 }
 
-/* Greyed-out extra rows */
 .string-row.extra {
   opacity: 0.5;
 }
 
-/* Container for arrows and label */
 .string-label-container {
   display: flex;
   align-items: center;
@@ -93,7 +129,7 @@ h1 {
   font-weight: bold;
 }
 
-/* Fret cells: default 40×40 to match “original” screenshot. */
+/* Fret cells: fixed 40×40 (or 30×30 on small screens) */
 .fret {
   width: 40px;
   height: 40px;
@@ -103,7 +139,6 @@ h1 {
   background-color: #222;
 }
 
-/* Horizontal center line */
 .fret::after {
   content: "";
   position: absolute;
@@ -114,7 +149,6 @@ h1 {
   transform: translateY(-50%);
 }
 
-/* Dot for highlighted frets (color is set dynamically in JS) */
 .fret-highlight {
   position: absolute;
   top: 50%;
@@ -125,7 +159,6 @@ h1 {
   border-radius: 50%;
 }
 
-/* Media query for smaller screens */
 @media (max-width: 600px) {
   .fret {
     width: 30px;
