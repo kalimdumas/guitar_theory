@@ -1,4 +1,4 @@
-/**************************** 
+/****************************
  *  Constants & Globals
  ****************************/
 // Tuning arrays
@@ -19,6 +19,22 @@ const semitoneMap = {
   "A": 9,
   "A#/BB": 10,
   "B": 11
+};
+
+// Mapping of relative semitones to scale degrees
+const SEMITONE_DEGREE_MAP = {
+  0: "1",
+  1: "b2",
+  2: "2",
+  3: "b3",
+  4: "3",
+  5: "4",
+  6: "b5",
+  7: "5",
+  8: "b6",
+  9: "6",
+  10: "b7",
+  11: "7"
 };
 
 // Class representing a diatonic chunk
@@ -48,7 +64,7 @@ let customTuning = null;
 let tuning = customTuning ? customTuning : STANDARD_TUNING;
 
 // We'll build highlightRows on the fly from the current dropdown sets.
-let highlightRows = []; // each entry: { rootSemitone, chunk, color }
+let highlightRows = []; // each entry: { rootSemitone, chunk, color, showScaleDegrees }
 
 /****************************
  *  Helper Functions
@@ -69,20 +85,23 @@ function setTuning(newTuning) {
 }
 
 /****************************
- *  getColorForFretValue
+ *  getHighlightForFretValue
  ****************************/
-function getColorForFretValue(fretValue) {
-  let color = null;
-  // Iterate through highlightRows in DOM order (top-to-bottom).
+function getHighlightForFretValue(fretValue) {
+  let result = null;
   // Later rows override earlier ones.
   highlightRows.forEach((row) => {
     let difference = (fretValue - row.rootSemitone) % 12;
     difference = (difference + 12) % 12;
     if (row.chunk.values.includes(difference)) {
-      color = row.color;
+      result = { 
+        color: row.color, 
+        showScaleDegrees: row.showScaleDegrees, 
+        degree: SEMITONE_DEGREE_MAP[difference]
+      };
     }
   });
-  return color;
+  return result;
 }
 
 /****************************
@@ -152,12 +171,18 @@ function createStringRow(value, interactive, index, customLabel) {
     const fretValue = baseValue + f;
     fret.setAttribute("data-fret-value", fretValue);
     
-    const color = getColorForFretValue(fretValue);
-    if (color) {
+    const highlight = getHighlightForFretValue(fretValue);
+    if (highlight) {
       const highlightCircle = document.createElement("div");
       highlightCircle.classList.add("fret-highlight");
-      highlightCircle.style.backgroundColor = color;
+      highlightCircle.style.backgroundColor = highlight.color;
       fret.appendChild(highlightCircle);
+      if (highlight.showScaleDegrees) {
+        const degreeText = document.createElement("span");
+        degreeText.textContent = highlight.degree;
+        degreeText.classList.add("fret-scale-text");
+        fret.appendChild(degreeText);
+      }
     }
 
     row.appendChild(fret);
@@ -230,7 +255,7 @@ function createHighlightRow() {
   const container = document.createElement("div");
   container.classList.add("highlight-row");
   
-  // Create reorder container with up/down arrows
+  // Reorder container with up/down arrows
   const reorderContainer = document.createElement("div");
   reorderContainer.classList.add("reorder-container");
   
@@ -261,7 +286,7 @@ function createHighlightRow() {
   reorderContainer.appendChild(upArrow);
   reorderContainer.appendChild(downArrow);
   
-  // Create remove button (to the right of arrows)
+  // Remove button
   const removeButton = document.createElement("button");
   removeButton.textContent = "Remove";
   removeButton.classList.add("remove-button");
@@ -269,7 +294,6 @@ function createHighlightRow() {
     container.remove();
   });
   
-  // Append reorder container and remove button to the highlight row container
   container.appendChild(reorderContainer);
   container.appendChild(removeButton);
   
@@ -322,6 +346,22 @@ function createHighlightRow() {
   container.appendChild(chunkDiv);
   container.appendChild(colorDiv);
   
+  // "Scale Degrees" checkbox
+  container.dataset.showScaleDegrees = "false"; // initial state
+  const scaleContainer = document.createElement("div");
+  scaleContainer.classList.add("scale-container");
+  const scaleCheckbox = document.createElement("input");
+  scaleCheckbox.type = "checkbox";
+  scaleCheckbox.classList.add("scale-checkbox");
+  scaleCheckbox.addEventListener("change", () => {
+    container.dataset.showScaleDegrees = scaleCheckbox.checked ? "true" : "false";
+  });
+  const scaleLabel = document.createElement("label");
+  scaleLabel.textContent = "Scale Degrees";
+  scaleContainer.appendChild(scaleCheckbox);
+  scaleContainer.appendChild(scaleLabel);
+  container.appendChild(scaleContainer);
+  
   return container;
 }
 
@@ -341,11 +381,13 @@ function applyHighlights() {
     const color = row.querySelector(".color-dropdown").value;
     const rootSemitone = semitoneMap[rootVal.toUpperCase()] || 0;
     const chunkObj = DIATONIC_CHUNKS.find(c => c.id === chunkId);
+    const showScaleDegrees = row.dataset.showScaleDegrees === "true";
     if (chunkObj) {
       highlightRows.push({
         rootSemitone: rootSemitone,
         chunk: chunkObj,
-        color: color
+        color: color,
+        showScaleDegrees: showScaleDegrees
       });
     }
   });

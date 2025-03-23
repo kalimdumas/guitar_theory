@@ -55,7 +55,7 @@ h1 {
   margin-bottom: 10px;
 }
 
-/* Each highlight row (set of three dropdowns) */
+/* Each highlight row (set of dropdowns and buttons) */
 .highlight-row {
   display: flex;
   align-items: center;
@@ -157,6 +157,22 @@ h1 {
   width: 15px;
   height: 15px;
   border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1;
+}
+
+/* New: Scale degree text over the string */
+.fret-scale-text {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  color: black;
+  font-weight: bold;
+  z-index: 2;
+  pointer-events: none;
 }
 
 @media (max-width: 600px) {
