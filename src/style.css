@@ -44,14 +44,12 @@ h1 {
   margin-bottom: 20px;
 }
 
-/* Highlight panel on the right (or below on narrow screens) */
+/* highlight-panel (or multi-dropdown panel) can stay in control-panel or separate */
 #highlight-panel {
-  margin-left: 20px;
-  margin-bottom: 20px;
+  margin-top: 20px;
   display: flex;
   flex-direction: column;
-  justify-content: flex-start;
-  align-items: center;
+  align-items: flex-start;
 }
 
 /* Each row represents a guitar string */
@@ -84,16 +82,18 @@ h1 {
   line-height: 1;
 }
 
+.arrow.hide-arrow {
+  cursor: default;
+  opacity: 0;
+}
+
 .string-label {
   width: 30px;
   text-align: right;
   font-weight: bold;
 }
 
-/* 
-   Fret cells: default 40×40 to match your “original” screenshot. 
-   On narrower screens, we reduce them slightly with media queries.
-*/
+/* Fret cells: default 40×40 */
 .fret {
   width: 40px;
   height: 40px;
@@ -103,7 +103,7 @@ h1 {
   background-color: #222;
 }
 
-/* Thick horizontal center line */
+/* Horizontal center line */
 .fret::after {
   content: "";
   position: absolute;
@@ -114,7 +114,7 @@ h1 {
   transform: translateY(-50%);
 }
 
-/* Red highlight dot for marked frets */
+/* Dot for highlighted frets (color is set dynamically) */
 .fret-highlight {
   position: absolute;
   top: 50%;
@@ -123,13 +123,9 @@ h1 {
   width: 15px;
   height: 15px;
   border-radius: 50%;
-  background-color: red;
 }
 
-/* 
-   Media queries for smaller screens:
-   - If the screen width is below 600px, reduce fret size to 30×30.
-*/
+/* Media query for smaller screens */
 @media (max-width: 600px) {
   .fret {
     width: 30px;
@@ -144,10 +140,4 @@ h1 {
     font-size: 0.9rem;
   }
 }
-
-.arrow.hide-arrow {
-  cursor: default;
-  opacity: 0;
-}
-
 

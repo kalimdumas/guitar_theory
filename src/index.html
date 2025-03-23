@@ -9,27 +9,55 @@
 <body>
   <h1>Guitar Music Theory Visualizer</h1>
   <p>Welcome to the guitar music theory visualization tool.</p>
+
   <div id="main-container">
+    <!-- Left panel for extra rows & highlight controls -->
     <div id="control-panel">
+      <!-- Extra rows toggle and inputs -->
       <label>
          <input type="checkbox" id="extra-rows-toggle" checked>
          Additional Stringrows
       </label>
       <div id="extra-rows-input">
-         <label>Rows Above: <input type="number" id="rows-above" value="5" min="0"></label>
+         <label>Rows Above:
+           <input type="number" id="rows-above" value="5" min="0">
+         </label>
          <br>
-         <label>Rows Below: <input type="number" id="rows-below" value="5" min="0"></label>
+         <label>Rows Below:
+           <input type="number" id="rows-below" value="5" min="0">
+         </label>
          <br>
          <button id="apply-extra-rows">Apply</button>
       </div>
+
+      <!-- Three dropdowns + "Add Row" / "Apply" -->
       <div id="highlight-panel">
-        <label for="note-input">Highlight Note:</label>
-        <input type="text" id="note-input" placeholder="e.g. C#" />
-        <button id="apply-note">Apply</button>
+        <div>
+          <label for="root-dropdown">Root:</label>
+          <select id="root-dropdown"></select>
+        </div>
+
+        <div>
+          <label for="chunk-dropdown">Chunk:</label>
+          <select id="chunk-dropdown"></select>
+        </div>
+
+        <div>
+          <label for="color-dropdown">Color:</label>
+          <select id="color-dropdown"></select>
+        </div>
+
+        <br>
+
+        <button id="add-row-button">Add Row</button>
+        <button id="apply-button">Apply</button>
       </div>
     </div>
+
+    <!-- Fretboard on the right -->
     <div id="fretboard"></div>
   </div>
+
   <script src="script.js"></script>
 </body>
 </html>
