@@ -86,6 +86,9 @@ function createStringRow(value, interactive, index, customLabel) {
       stringLabel.textContent = getNoteNameFromValue(tuning[index]);
       createFretboard(getExtraAbove(), getExtraBelow());
     });
+  } else {
+    upArrow.classList.add("hide-arrow");
+    downArrow.classList.add("hide-arrow");
   }
   
   arrowContainer.appendChild(upArrow);
@@ -102,7 +105,7 @@ function createStringRow(value, interactive, index, customLabel) {
     baseValue = value;
   }
 
-  const numFrets = 12;
+  const numFrets = 18;
   for (let f = 1; f <= numFrets; f++) {
     const fret = document.createElement("div");
     fret.classList.add("fret");
@@ -125,7 +128,7 @@ function createStringRow(value, interactive, index, customLabel) {
 /****************************
  *  Build the Fretboard
  ****************************/
-function createFretboard(extraAbove = 0, extraBelow = 0) {
+function createFretboard(extraAbove = 5, extraBelow = 5) {
   const fretboard = document.getElementById("fretboard");
   fretboard.innerHTML = "";
   
@@ -184,30 +187,30 @@ document.addEventListener("DOMContentLoaded", function() {
   const extraRowsInput = document.getElementById("extra-rows-input");
   
   toggle.addEventListener("change", () => {
-    if (toggle.checked) {
-      extraRowsInput.style.display = "block";
-    } else {
-      extraRowsInput.style.display = "none";
-      createFretboard(getExtraAbove(), getExtraBelow());
-    }
-  });
-  
-  const applyButton = document.getElementById("apply-extra-rows");
-  applyButton.addEventListener("click", () => {
+      if (toggle.checked) {
+          extraRowsInput.style.display = "block";
+        } else {
+            extraRowsInput.style.display = "none";
+        }
+        createFretboard(getExtraAbove(), getExtraBelow());
+    });
+    
+    const applyButton = document.getElementById("apply-extra-rows");
+    applyButton.addEventListener("click", () => {
+        createFretboard(getExtraAbove(), getExtraBelow());
+    });
+    
+    const applyNoteButton = document.getElementById("apply-note");
+    applyNoteButton.addEventListener("click", () => {
+        const noteInput = document.getElementById("note-input").value.trim().toUpperCase();
+        if (semitoneMap.hasOwnProperty(noteInput)) {
+            highlightSemitone = semitoneMap[noteInput];
+        } else {
+            highlightSemitone = null;
+        }
+        createFretboard(getExtraAbove(), getExtraBelow());
+    });
+    
     createFretboard(getExtraAbove(), getExtraBelow());
-  });
-  
-  const applyNoteButton = document.getElementById("apply-note");
-  applyNoteButton.addEventListener("click", () => {
-    const noteInput = document.getElementById("note-input").value.trim().toUpperCase();
-    if (semitoneMap.hasOwnProperty(noteInput)) {
-      highlightSemitone = semitoneMap[noteInput];
-    } else {
-      highlightSemitone = null;
-    }
-    createFretboard(getExtraAbove(), getExtraBelow());
-  });
-  
-  createFretboard(0, 0);
 });
 
