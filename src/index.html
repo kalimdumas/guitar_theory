@@ -11,8 +11,15 @@
   <p>Welcome to the guitar music theory visualization tool.</p>
 
   <div id="main-container">
-    <!-- Left panel for extra rows & highlight controls -->
+    <!-- Left panel for tunings, extra rows & highlight controls -->
     <div id="control-panel">
+      <!-- Tunings dropdown -->
+      <div id="tunings-panel">
+        <label for="tunings-dropdown">Tunings:</label>
+        <select id="tunings-dropdown"></select>
+        <button id="apply-tuning-button">Apply</button>
+      </div>
+      
       <!-- Extra rows toggle and inputs -->
       <label>
          <input type="checkbox" id="extra-rows-toggle">

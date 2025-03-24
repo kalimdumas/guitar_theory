@@ -33,6 +33,11 @@ h1 {
   margin-bottom: 20px;
 }
 
+/* Tunings panel */
+#tunings-panel {
+  margin-bottom: 10px;
+}
+
 /* Fretboard container */
 #fretboard {
   display: inline-block;
@@ -163,7 +168,7 @@ h1 {
   z-index: 1;
 }
 
-/* New: Scale degree text over the string */
+/* New: Scale degree or Note Name text over the string */
 .fret-scale-text {
   position: absolute;
   top: 50%;

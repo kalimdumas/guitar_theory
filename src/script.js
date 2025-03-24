@@ -5,6 +5,19 @@
 const STANDARD_TUNING = [4, 11, 7, 2, 9, 4]; // E, B, G, D, A, E
 const REVERSED_STANDARD_TUNING = [4, 9, 2, 7, 11, 4]; // E, A, D, G, B, E
 
+// Tunings dropdown options
+const TUNINGS = {
+  "Drop D": [4, 11, 7, 2, 9, 2],
+  "Half Step Down": [3, 10, 6, 1, 8, 3],
+  "Drop C": [2, 9, 5, 0, 7, 0],
+  "Open G": [2, 11, 7, 2, 7, 2],
+  "Open D": [2, 9, 6, 2, 9, 2],
+  "DADGAD": [2, 9, 7, 2, 9, 2],
+  "Drop B": [1, 8, 4, 11, 6, 11],
+  "Open C": [4, 0, 7, 0, 7, 0],
+  "Double Drop D": [2, 11, 7, 2, 9, 2]
+};
+
 // Map of semitones for each note
 const semitoneMap = {
   "C": 0,
@@ -52,7 +65,11 @@ const DIATONIC_CHUNKS = [
   new DiatonicChunk(1, "Maj Triad", [0, 4, 7]),
   new DiatonicChunk(2, "Min Triad", [0, 3, 7]),
   new DiatonicChunk(3, "Maj Pentatonic", [0, 2, 4, 7, 9]),
-  new DiatonicChunk(4, "Min Pentatonic", [0, 3, 5, 7, 10])
+  new DiatonicChunk(4, "Min Pentatonic", [0, 3, 5, 7, 10]),
+  new DiatonicChunk(5, "Maj Scale", [0, 2, 4, 5, 7, 9, 11]),
+  new DiatonicChunk(6, "Nat Min Scale", [0, 2, 3, 5, 7, 8, 10]),
+  new DiatonicChunk(7, "Blues Scale", [0, 3, 5, 6, 7, 10]),
+  new DiatonicChunk(8, "Dominant 7", [0, 4, 7, 10]),
 ];
 
 // Define available root notes and colors
@@ -64,7 +81,7 @@ let customTuning = null;
 let tuning = customTuning ? customTuning : STANDARD_TUNING;
 
 // We'll build highlightRows on the fly from the current dropdown sets.
-let highlightRows = []; // each entry: { rootSemitone, chunk, color, showScaleDegrees }
+let highlightRows = []; // each entry: { rootSemitone, chunk, color, showScaleDegrees, showNoteName }
 
 /****************************
  *  Helper Functions
@@ -94,10 +111,13 @@ function getHighlightForFretValue(fretValue) {
     let difference = (fretValue - row.rootSemitone) % 12;
     difference = (difference + 12) % 12;
     if (row.chunk.values.includes(difference)) {
+      let noteName = getNoteNameFromValue(fretValue);
       result = { 
         color: row.color, 
         showScaleDegrees: row.showScaleDegrees, 
-        degree: SEMITONE_DEGREE_MAP[difference]
+        showNoteName: row.showNoteName,
+        degree: SEMITONE_DEGREE_MAP[difference],
+        noteName: noteName
       };
     }
   });
@@ -182,6 +202,11 @@ function createStringRow(value, interactive, index, customLabel) {
         degreeText.textContent = highlight.degree;
         degreeText.classList.add("fret-scale-text");
         fret.appendChild(degreeText);
+      } else if (highlight.showNoteName) {
+        const noteNameText = document.createElement("span");
+        noteNameText.textContent = highlight.noteName;
+        noteNameText.classList.add("fret-scale-text");
+        fret.appendChild(noteNameText);
       }
     }
 
@@ -346,21 +371,51 @@ function createHighlightRow() {
   container.appendChild(chunkDiv);
   container.appendChild(colorDiv);
   
+  // Initialize checkbox states
+  container.dataset.showScaleDegrees = "false";
+  container.dataset.showNoteName = "false";
+
   // "Scale Degrees" checkbox
-  container.dataset.showScaleDegrees = "false"; // initial state
   const scaleContainer = document.createElement("div");
   scaleContainer.classList.add("scale-container");
   const scaleCheckbox = document.createElement("input");
   scaleCheckbox.type = "checkbox";
   scaleCheckbox.classList.add("scale-checkbox");
-  scaleCheckbox.addEventListener("change", () => {
-    container.dataset.showScaleDegrees = scaleCheckbox.checked ? "true" : "false";
-  });
   const scaleLabel = document.createElement("label");
   scaleLabel.textContent = "Scale Degrees";
   scaleContainer.appendChild(scaleCheckbox);
   scaleContainer.appendChild(scaleLabel);
+  
+  // "Note Name" checkbox
+  const noteNameContainer = document.createElement("div");
+  noteNameContainer.classList.add("note-name-container");
+  const noteNameCheckbox = document.createElement("input");
+  noteNameCheckbox.type = "checkbox";
+  noteNameCheckbox.classList.add("note-name-checkbox");
+  const noteNameLabel = document.createElement("label");
+  noteNameLabel.textContent = "Note Name";
+  noteNameContainer.appendChild(noteNameCheckbox);
+  noteNameContainer.appendChild(noteNameLabel);
+  
+  // Enforce mutual exclusivity
+  scaleCheckbox.addEventListener("change", () => {
+    if (scaleCheckbox.checked) {
+      noteNameCheckbox.checked = false;
+      container.dataset.showNoteName = "false";
+    }
+    container.dataset.showScaleDegrees = scaleCheckbox.checked ? "true" : "false";
+  });
+  
+  noteNameCheckbox.addEventListener("change", () => {
+    if (noteNameCheckbox.checked) {
+      scaleCheckbox.checked = false;
+      container.dataset.showScaleDegrees = "false";
+    }
+    container.dataset.showNoteName = noteNameCheckbox.checked ? "true" : "false";
+  });
+  
   container.appendChild(scaleContainer);
+  container.appendChild(noteNameContainer);
   
   return container;
 }
@@ -382,12 +437,14 @@ function applyHighlights() {
     const rootSemitone = semitoneMap[rootVal.toUpperCase()] || 0;
     const chunkObj = DIATONIC_CHUNKS.find(c => c.id === chunkId);
     const showScaleDegrees = row.dataset.showScaleDegrees === "true";
+    const showNoteName = row.dataset.showNoteName === "true";
     if (chunkObj) {
       highlightRows.push({
         rootSemitone: rootSemitone,
         chunk: chunkObj,
         color: color,
-        showScaleDegrees: showScaleDegrees
+        showScaleDegrees: showScaleDegrees,
+        showNoteName: showNoteName
       });
     }
   });
@@ -399,6 +456,23 @@ function applyHighlights() {
  *  DOM Ready
  ****************************/
 document.addEventListener("DOMContentLoaded", function() {
+  // Populate tunings dropdown
+  const tuningDropdown = document.getElementById("tunings-dropdown");
+  for (const tuningName in TUNINGS) {
+    const option = document.createElement("option");
+    option.value = tuningName;
+    option.textContent = tuningName;
+    tuningDropdown.appendChild(option);
+  }
+  
+  // Tunings apply button event
+  document.getElementById("apply-tuning-button").addEventListener("click", () => {
+    const selectedTuningName = tuningDropdown.value;
+    const newTuning = TUNINGS[selectedTuningName];
+    setTuning(newTuning);
+    createFretboard(getExtraAbove(), getExtraBelow());
+  });
+  
   // Extra rows toggle and apply
   const toggle = document.getElementById("extra-rows-toggle");
   const extraRowsInput = document.getElementById("extra-rows-input");
