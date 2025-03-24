@@ -5,7 +5,7 @@
 const STANDARD_TUNING = [4, 11, 7, 2, 9, 4]; // E, B, G, D, A, E
 const REVERSED_STANDARD_TUNING = [4, 9, 2, 7, 11, 4]; // E, A, D, G, B, E
 
-// Tunings dropdown options
+// Predefined Tunings dropdown options
 const TUNINGS = {
   "Drop D": [4, 11, 7, 2, 9, 2],
   "Half Step Down": [3, 10, 6, 1, 8, 3],
@@ -17,6 +17,9 @@ const TUNINGS = {
   "Open C": [4, 0, 7, 0, 7, 0],
   "Double Drop D": [2, 11, 7, 2, 9, 2]
 };
+
+// Global object to store custom tunings
+let customTunings = {};
 
 // Map of semitones for each note
 const semitoneMap = {
@@ -99,6 +102,41 @@ function getNoteNameFromValue(value) {
 function setTuning(newTuning) {
   tuning = newTuning;
   console.log("Tuning updated to:", tuning);
+}
+
+/****************************
+ *  Local Storage Functions
+ ****************************/
+function loadCustomTunings() {
+  const stored = localStorage.getItem("customTunings");
+  if (stored) {
+    customTunings = JSON.parse(stored);
+  } else {
+    customTunings = {};
+  }
+}
+
+function saveCustomTunings() {
+  localStorage.setItem("customTunings", JSON.stringify(customTunings));
+}
+
+function updateTuningsDropdown() {
+  const tuningDropdown = document.getElementById("tunings-dropdown");
+  tuningDropdown.innerHTML = "";
+  // Add predefined tunings
+  for (const tuningName in TUNINGS) {
+    const option = document.createElement("option");
+    option.value = tuningName;
+    option.textContent = tuningName;
+    tuningDropdown.appendChild(option);
+  }
+  // Add custom tunings
+  for (const tuningName in customTunings) {
+    const option = document.createElement("option");
+    option.value = tuningName;
+    option.textContent = tuningName;
+    tuningDropdown.appendChild(option);
+  }
 }
 
 /****************************
@@ -456,21 +494,51 @@ function applyHighlights() {
  *  DOM Ready
  ****************************/
 document.addEventListener("DOMContentLoaded", function() {
-  // Populate tunings dropdown
-  const tuningDropdown = document.getElementById("tunings-dropdown");
-  for (const tuningName in TUNINGS) {
-    const option = document.createElement("option");
-    option.value = tuningName;
-    option.textContent = tuningName;
-    tuningDropdown.appendChild(option);
-  }
+  // Load custom tunings and populate tunings dropdown
+  loadCustomTunings();
+  updateTuningsDropdown();
   
   // Tunings apply button event
   document.getElementById("apply-tuning-button").addEventListener("click", () => {
+    const tuningDropdown = document.getElementById("tunings-dropdown");
     const selectedTuningName = tuningDropdown.value;
-    const newTuning = TUNINGS[selectedTuningName];
-    setTuning(newTuning);
-    createFretboard(getExtraAbove(), getExtraBelow());
+    let newTuning = TUNINGS[selectedTuningName];
+    if (!newTuning) {
+      newTuning = customTunings[selectedTuningName];
+    }
+    if (newTuning) {
+      setTuning(newTuning);
+      createFretboard(getExtraAbove(), getExtraBelow());
+    }
+  });
+  
+  // Save current tuning button event
+  document.getElementById("save-tuning-button").addEventListener("click", () => {
+    const nameInput = document.getElementById("custom-tuning-name");
+    const name = nameInput.value.trim();
+    if (!name) {
+      alert("Please enter a name for your tuning.");
+      return;
+    }
+    // Save the current tuning (clone the tuning array)
+    customTunings[name] = tuning.slice();
+    saveCustomTunings();
+    updateTuningsDropdown();
+    nameInput.value = "";
+  });
+  
+  // Remove tuning button event
+  document.getElementById("remove-tuning-button").addEventListener("click", () => {
+    const tuningDropdown = document.getElementById("tunings-dropdown");
+    const selectedTuningName = tuningDropdown.value;
+    // Only remove if it's a custom tuning
+    if (TUNINGS[selectedTuningName] !== undefined) {
+      alert("Predefined tunings cannot be removed.");
+      return;
+    }
+    delete customTunings[selectedTuningName];
+    saveCustomTunings();
+    updateTuningsDropdown();
   });
   
   // Extra rows toggle and apply

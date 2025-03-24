@@ -13,11 +13,18 @@
   <div id="main-container">
     <!-- Left panel for tunings, extra rows & highlight controls -->
     <div id="control-panel">
-      <!-- Tunings dropdown -->
+      <!-- Tunings dropdown and custom tuning saver -->
       <div id="tunings-panel">
         <label for="tunings-dropdown">Tunings:</label>
         <select id="tunings-dropdown"></select>
         <button id="apply-tuning-button">Apply</button>
+        <br>
+        <!-- New: remove tuning button -->
+        <button id="remove-tuning-button">Remove</button>
+        <br>
+        <!-- New: input and button for saving current tuning -->
+        <input type="text" id="custom-tuning-name" placeholder="Name tuning">
+        <button id="save-tuning-button">Save Current Tuning</button>
       </div>
       
       <!-- Extra rows toggle and inputs -->
