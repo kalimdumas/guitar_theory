@@ -1,12 +1,9 @@
 /****************************
  *  Constants & Globals
  ****************************/
-// Tuning arrays
 const STANDARD_TUNING = [4, 11, 7, 2, 9, 4]; // E, B, G, D, A, E
-const REVERSED_STANDARD_TUNING = [4, 9, 2, 7, 11, 4]; // E, A, D, G, B, E
-
-// Predefined Tunings dropdown options
 const TUNINGS = {
+  "Standard": STANDARD_TUNING,
   "Drop D": [4, 11, 7, 2, 9, 2],
   "Half Step Down": [3, 10, 6, 1, 8, 3],
   "Drop C": [2, 9, 5, 0, 7, 0],
@@ -17,43 +14,17 @@ const TUNINGS = {
   "Open C": [4, 0, 7, 0, 7, 0],
   "Double Drop D": [2, 11, 7, 2, 9, 2]
 };
-
-// Global object to store custom tunings
 let customTunings = {};
-
-// Map of semitones for each note
 const semitoneMap = {
-  "C": 0,
-  "C#/DB": 1,
-  "D": 2,
-  "D#/EB": 3,
-  "E": 4,
-  "F": 5,
-  "F#/GB": 6,
-  "G": 7,
-  "G#/AB": 8,
-  "A": 9,
-  "A#/BB": 10,
-  "B": 11
+  "C": 0, "C#/DB": 1, "D": 2, "D#/EB": 3, "E": 4,
+  "F": 5, "F#/GB": 6, "G": 7, "G#/AB": 8, "A": 9,
+  "A#/BB": 10, "B": 11
 };
-
-// Mapping of relative semitones to scale degrees
 const SEMITONE_DEGREE_MAP = {
-  0: "1",
-  1: "b2",
-  2: "2",
-  3: "b3",
-  4: "3",
-  5: "4",
-  6: "b5",
-  7: "5",
-  8: "b6",
-  9: "6",
-  10: "b7",
-  11: "7"
+  0: "1", 1: "b2", 2: "2", 3: "b3", 4: "3", 5: "4",
+  6: "b5", 7: "5", 8: "b6", 9: "6", 10: "b7", 11: "7"
 };
 
-// Class representing a diatonic chunk
 class DiatonicChunk {
   constructor(id, name, values) {
     this.id = id;
@@ -61,8 +32,6 @@ class DiatonicChunk {
     this.values = values;
   }
 }
-
-// Define available diatonic chunks
 const DIATONIC_CHUNKS = [
   new DiatonicChunk(0, "Single Note", [0]),
   new DiatonicChunk(1, "Maj Triad", [0, 4, 7]),
@@ -74,31 +43,26 @@ const DIATONIC_CHUNKS = [
   new DiatonicChunk(7, "Blues Scale", [0, 3, 5, 6, 7, 10]),
   new DiatonicChunk(8, "Dominant 7", [0, 4, 7, 10]),
 ];
-
-// Define available root notes and colors
 const ROOT_NOTES = Object.keys(semitoneMap);
 const AVAILABLE_COLORS = ["red", "blue", "green", "yellow", "purple", "orange"];
-
-// Custom tuning (if any)
 let customTuning = null;
 let tuning = customTuning ? customTuning : STANDARD_TUNING;
-
-// We'll build highlightRows on the fly from the current dropdown sets.
-let highlightRows = []; // each entry: { rootSemitone, chunk, color, showScaleDegrees, showNoteName }
+let highlightRows = []; // from applied highlight rows
+// manualHighlights holds overrides (both additions and removals)
+// key: "stringIndex_fretNumber" => { removed, color, showNoteName, showScaleDegrees, highlightRowIndex, highlightRowData }
+let manualHighlights = {};
+let cursorActivationActive = false;
 
 /****************************
  *  Helper Functions
  ****************************/
 function getNoteNameFromValue(value) {
-  const normalized = ((value % 12) + 12) % 12;
-  for (const note in semitoneMap) {
-    if (semitoneMap[note] === normalized) {
-      return note;
-    }
+  const norm = ((value % 12) + 12) % 12;
+  for (let note in semitoneMap) {
+    if (semitoneMap[note] === norm) return note;
   }
   return "?";
 }
-
 function setTuning(newTuning) {
   tuning = newTuning;
   console.log("Tuning updated to:", tuning);
@@ -109,33 +73,25 @@ function setTuning(newTuning) {
  ****************************/
 function loadCustomTunings() {
   const stored = localStorage.getItem("customTunings");
-  if (stored) {
-    customTunings = JSON.parse(stored);
-  } else {
-    customTunings = {};
-  }
+  customTunings = stored ? JSON.parse(stored) : {};
 }
-
 function saveCustomTunings() {
   localStorage.setItem("customTunings", JSON.stringify(customTunings));
 }
-
 function updateTuningsDropdown() {
-  const tuningDropdown = document.getElementById("tunings-dropdown");
-  tuningDropdown.innerHTML = "";
-  // Add predefined tunings
-  for (const tuningName in TUNINGS) {
-    const option = document.createElement("option");
-    option.value = tuningName;
-    option.textContent = tuningName;
-    tuningDropdown.appendChild(option);
+  const dd = document.getElementById("tunings-dropdown");
+  dd.innerHTML = "";
+  for (let name in TUNINGS) {
+    const opt = document.createElement("option");
+    opt.value = name;
+    opt.textContent = name;
+    dd.appendChild(opt);
   }
-  // Add custom tunings
-  for (const tuningName in customTunings) {
-    const option = document.createElement("option");
-    option.value = tuningName;
-    option.textContent = tuningName;
-    tuningDropdown.appendChild(option);
+  for (let name in customTunings) {
+    const opt = document.createElement("option");
+    opt.value = name;
+    opt.textContent = name;
+    dd.appendChild(opt);
   }
 }
 
@@ -144,18 +100,16 @@ function updateTuningsDropdown() {
  ****************************/
 function getHighlightForFretValue(fretValue) {
   let result = null;
-  // Later rows override earlier ones.
-  highlightRows.forEach((row) => {
-    let difference = (fretValue - row.rootSemitone) % 12;
-    difference = (difference + 12) % 12;
-    if (row.chunk.values.includes(difference)) {
-      let noteName = getNoteNameFromValue(fretValue);
+  highlightRows.forEach(row => {
+    let diff = (fretValue - row.rootSemitone) % 12;
+    diff = (diff + 12) % 12;
+    if (row.chunk.values.includes(diff)) {
       result = { 
         color: row.color, 
         showScaleDegrees: row.showScaleDegrees, 
         showNoteName: row.showNoteName,
-        degree: SEMITONE_DEGREE_MAP[difference],
-        noteName: noteName
+        degree: SEMITONE_DEGREE_MAP[diff],
+        noteName: getNoteNameFromValue(fretValue)
       };
     }
   });
@@ -168,30 +122,21 @@ function getHighlightForFretValue(fretValue) {
 function createStringRow(value, interactive, index, customLabel) {
   const row = document.createElement("div");
   row.classList.add("string-row");
-  if (!interactive) {
-    row.classList.add("extra");
-  }
+  if (!interactive) row.classList.add("extra");
   
   const labelContainer = document.createElement("div");
   labelContainer.classList.add("string-label-container");
-  
   const arrowContainer = document.createElement("div");
   arrowContainer.classList.add("arrow-container");
-  
   const upArrow = document.createElement("div");
   upArrow.textContent = "▲";
   upArrow.classList.add("arrow");
-  
   const downArrow = document.createElement("div");
   downArrow.textContent = "▼";
   downArrow.classList.add("arrow");
-  
   const stringLabel = document.createElement("div");
   stringLabel.classList.add("string-label");
-  stringLabel.textContent = (customLabel !== undefined)
-    ? customLabel
-    : getNoteNameFromValue(value);
-
+  stringLabel.textContent = customLabel !== undefined ? customLabel : getNoteNameFromValue(value);
   if (interactive) {
     upArrow.addEventListener("click", () => {
       tuning[index] = (tuning[index] + 1) % 12;
@@ -207,50 +152,124 @@ function createStringRow(value, interactive, index, customLabel) {
     upArrow.classList.add("hide-arrow");
     downArrow.classList.add("hide-arrow");
   }
-  
   arrowContainer.appendChild(upArrow);
   arrowContainer.appendChild(downArrow);
   labelContainer.appendChild(arrowContainer);
   labelContainer.appendChild(stringLabel);
   row.appendChild(labelContainer);
   
-  let baseValue;
-  if (customLabel !== undefined) {
-    let note = customLabel.toUpperCase();
-    baseValue = semitoneMap[note] !== undefined ? semitoneMap[note] : 0;
-  } else {
-    baseValue = value;
-  }
-
+  let baseValue = customLabel !== undefined ? (semitoneMap[customLabel.toUpperCase()] || 0) : value;
   const numFrets = 18;
   for (let f = 1; f <= numFrets; f++) {
     const fret = document.createElement("div");
     fret.classList.add("fret");
     const fretValue = baseValue + f;
     fret.setAttribute("data-fret-value", fretValue);
+    if (interactive && index !== undefined) {
+      fret.dataset.stringIndex = index;
+      fret.dataset.fretNumber = f;
+    }
     
-    const highlight = getHighlightForFretValue(fretValue);
+    let key = interactive && index !== undefined ? `${index}_${f}` : null;
+    let highlight = null;
+    if (key && manualHighlights[key]) {
+      let m = manualHighlights[key];
+      if (m.removed) {
+        // Removal override: show nothing.
+        highlight = null;
+      } else {
+        // If using a manual highlight, compute properties.
+        if (m.showScaleDegrees && m.highlightRowData) {
+          let diff = (fretValue - m.highlightRowData.rootSemitone) % 12;
+          diff = (diff + 12) % 12;
+          m.degree = SEMITONE_DEGREE_MAP[diff];
+        }
+        if (m.showNoteName) {
+          m.noteName = getNoteNameFromValue(fretValue);
+        }
+        highlight = m;
+      }
+    } else {
+      highlight = getHighlightForFretValue(fretValue);
+    }
+    
     if (highlight) {
-      const highlightCircle = document.createElement("div");
-      highlightCircle.classList.add("fret-highlight");
-      highlightCircle.style.backgroundColor = highlight.color;
-      fret.appendChild(highlightCircle);
-      if (highlight.showScaleDegrees) {
-        const degreeText = document.createElement("span");
-        degreeText.textContent = highlight.degree;
-        degreeText.classList.add("fret-scale-text");
-        fret.appendChild(degreeText);
-      } else if (highlight.showNoteName) {
-        const noteNameText = document.createElement("span");
-        noteNameText.textContent = highlight.noteName;
-        noteNameText.classList.add("fret-scale-text");
-        fret.appendChild(noteNameText);
+      const circle = document.createElement("div");
+      circle.classList.add("fret-highlight");
+      circle.style.backgroundColor = highlight.color;
+      fret.appendChild(circle);
+      if (highlight.showScaleDegrees && highlight.degree) {
+        const span = document.createElement("span");
+        span.textContent = highlight.degree;
+        span.classList.add("fret-scale-text");
+        fret.appendChild(span);
+      } else if (highlight.showNoteName && highlight.noteName) {
+        const span = document.createElement("span");
+        span.textContent = highlight.noteName;
+        span.classList.add("fret-scale-text");
+        fret.appendChild(span);
       }
     }
-
+    
+    // Cursor hover effect
+    fret.addEventListener("mouseenter", () => {
+      if (cursorActivationActive) {
+        const hover = document.createElement("div");
+        hover.classList.add("fret-cursor-hover");
+        const span = document.createElement("span");
+        span.textContent = getNoteNameFromValue(fretValue);
+        span.classList.add("fret-scale-text");
+        hover.appendChild(span);
+        fret.appendChild(hover);
+      }
+    });
+    fret.addEventListener("mouseleave", () => {
+      const ov = fret.querySelector(".fret-cursor-hover");
+      if (ov) ov.remove();
+    });
+    
+    // Cursor click for manual highlight/removal
+    fret.addEventListener("click", () => {
+      if (!cursorActivationActive || !key) return;
+      // If already manually overridden, remove it.
+      if (manualHighlights[key]) {
+        delete manualHighlights[key];
+      } else {
+        // If a default highlight exists (via a highlight row), add a removal override.
+        let defaultHL = getHighlightForFretValue(fretValue);
+        if (defaultHL) {
+          manualHighlights[key] = { removed: true };
+        } else {
+          // Otherwise, add a new manual highlight per cursor settings.
+          const selColor = document.getElementById("cursor-color-dropdown").value;
+          const modeNote = document.getElementById("cursor-mode-note").checked;
+          const modeRow = document.getElementById("cursor-mode-row").checked;
+          let manual = { color: selColor, showNoteName: false, showScaleDegrees: false, highlightRowIndex: null };
+          if (modeNote) {
+            manual.showNoteName = true;
+          } else if (modeRow) {
+            manual.showScaleDegrees = true;
+            const selRow = document.getElementById("cursor-highlight-row-dropdown").value;
+            if (selRow !== "") {
+              manual.highlightRowIndex = parseInt(selRow, 10) - 1;
+              let rowsDOM = document.querySelectorAll(".highlight-row");
+              if (rowsDOM[manual.highlightRowIndex]) {
+                let rootVal = rowsDOM[manual.highlightRowIndex].querySelector(".root-dropdown").value;
+                let chunkId = parseInt(rowsDOM[manual.highlightRowIndex].querySelector(".chunk-dropdown").value, 10);
+                let rootSemitone = semitoneMap[rootVal.toUpperCase()] || 0;
+                let chunkObj = DIATONIC_CHUNKS.find(c => c.id === chunkId);
+                manual.highlightRowData = { rootSemitone, chunk: chunkObj };
+              }
+            }
+          }
+          manualHighlights[key] = manual;
+        }
+      }
+      createFretboard(getExtraAbove(), getExtraBelow());
+    });
+    
     row.appendChild(fret);
   }
-  
   return row;
 }
 
@@ -262,30 +281,24 @@ function createFretboard(extraAbove = 5, extraBelow = 5) {
   fretboard.innerHTML = "";
   
   const mainLabels = tuning.map(getNoteNameFromValue);
-  let cycle;
-  if (mainLabels[0] === mainLabels[mainLabels.length - 1]) {
-    cycle = mainLabels.slice(0, mainLabels.length - 1);
-  } else {
-    cycle = mainLabels.slice();
-  }
-  
+  let cycle = (mainLabels[0] === mainLabels[mainLabels.length - 1])
+    ? mainLabels.slice(0, mainLabels.length - 1)
+    : mainLabels.slice();
   const reverseCycle = cycle.slice().reverse();
-
+  
   for (let i = 0; i < extraAbove; i++) {
     const label = reverseCycle[i % reverseCycle.length];
     const row = createStringRow(0, false, undefined, label);
     fretboard.insertBefore(row, fretboard.firstChild);
   }
-
   tuning.forEach((value, index) => {
     const row = createStringRow(value, true, index);
     fretboard.appendChild(row);
   });
-  
   const bottomLabel = mainLabels[mainLabels.length - 1];
-  const bottomIndexInCycle = cycle.indexOf(bottomLabel);
+  const bottomIndex = cycle.indexOf(bottomLabel);
   for (let i = 1; i <= extraBelow; i++) {
-    const labelIndex = (bottomIndexInCycle + i) % cycle.length;
+    const labelIndex = (bottomIndex + i) % cycle.length;
     const label = cycle[labelIndex];
     const row = createStringRow(0, false, undefined, label);
     fretboard.appendChild(row);
@@ -293,22 +306,15 @@ function createFretboard(extraAbove = 5, extraBelow = 5) {
 }
 
 /****************************
- *  Extra Rows: Helpers
+ *  Extra Rows Helpers
  ****************************/
 function getExtraAbove() {
   const toggle = document.getElementById("extra-rows-toggle");
-  if (toggle.checked) {
-    return parseInt(document.getElementById("rows-above").value) || 0;
-  }
-  return 0;
+  return toggle.checked ? parseInt(document.getElementById("rows-above").value) || 0 : 0;
 }
-
 function getExtraBelow() {
   const toggle = document.getElementById("extra-rows-toggle");
-  if (toggle.checked) {
-    return parseInt(document.getElementById("rows-below").value) || 0;
-  }
-  return 0;
+  return toggle.checked ? parseInt(document.getElementById("rows-below").value) || 0 : 0;
 }
 
 /****************************
@@ -317,48 +323,42 @@ function getExtraBelow() {
 function createHighlightRow() {
   const container = document.createElement("div");
   container.classList.add("highlight-row");
-  
-  // Reorder container with up/down arrows
-  const reorderContainer = document.createElement("div");
-  reorderContainer.classList.add("reorder-container");
-  
-  const upArrow = document.createElement("button");
-  upArrow.textContent = "↑";
-  upArrow.classList.add("reorder-button");
-  upArrow.addEventListener("click", () => {
-    const currentRow = container;
-    const parent = currentRow.parentElement;
-    const previous = currentRow.previousElementSibling;
-    if (previous) {
-      parent.insertBefore(currentRow, previous);
-    }
+  const reorder = document.createElement("div");
+  reorder.classList.add("reorder-container");
+  const upBtn = document.createElement("button");
+  upBtn.textContent = "↑";
+  upBtn.classList.add("reorder-button");
+  upBtn.addEventListener("click", () => {
+    const cur = container;
+    const par = cur.parentElement;
+    const prev = cur.previousElementSibling;
+    if (prev) par.insertBefore(cur, prev);
+    updateHighlightRowNumbers();
+    updateCursorHighlightDropdown();
   });
-  
-  const downArrow = document.createElement("button");
-  downArrow.textContent = "↓";
-  downArrow.classList.add("reorder-button");
-  downArrow.addEventListener("click", () => {
-    const currentRow = container;
-    const parent = currentRow.parentElement;
-    const next = currentRow.nextElementSibling;
-    if (next) {
-      parent.insertBefore(next, currentRow);
-    }
+  const downBtn = document.createElement("button");
+  downBtn.textContent = "↓";
+  downBtn.classList.add("reorder-button");
+  downBtn.addEventListener("click", () => {
+    const cur = container;
+    const par = cur.parentElement;
+    const next = cur.nextElementSibling;
+    if (next) par.insertBefore(next, cur);
+    updateHighlightRowNumbers();
+    updateCursorHighlightDropdown();
   });
-  
-  reorderContainer.appendChild(upArrow);
-  reorderContainer.appendChild(downArrow);
-  
-  // Remove button
-  const removeButton = document.createElement("button");
-  removeButton.textContent = "Remove";
-  removeButton.classList.add("remove-button");
-  removeButton.addEventListener("click", () => {
+  reorder.appendChild(upBtn);
+  reorder.appendChild(downBtn);
+  const removeBtn = document.createElement("button");
+  removeBtn.textContent = "Remove";
+  removeBtn.classList.add("remove-button");
+  removeBtn.addEventListener("click", () => {
     container.remove();
+    updateHighlightRowNumbers();
+    updateCursorHighlightDropdown();
   });
-  
-  container.appendChild(reorderContainer);
-  container.appendChild(removeButton);
+  container.appendChild(reorder);
+  container.appendChild(removeBtn);
   
   // Root dropdown
   const rootDiv = document.createElement("div");
@@ -367,10 +367,10 @@ function createHighlightRow() {
   const rootSelect = document.createElement("select");
   rootSelect.classList.add("root-dropdown");
   ROOT_NOTES.forEach(note => {
-    const option = document.createElement("option");
-    option.value = note;
-    option.textContent = note;
-    rootSelect.appendChild(option);
+    const opt = document.createElement("option");
+    opt.value = note;
+    opt.textContent = note;
+    rootSelect.appendChild(opt);
   });
   rootLabel.appendChild(rootSelect);
   rootDiv.appendChild(rootLabel);
@@ -382,10 +382,10 @@ function createHighlightRow() {
   const chunkSelect = document.createElement("select");
   chunkSelect.classList.add("chunk-dropdown");
   DIATONIC_CHUNKS.forEach(chunk => {
-    const option = document.createElement("option");
-    option.value = chunk.id;
-    option.textContent = chunk.name;
-    chunkSelect.appendChild(option);
+    const opt = document.createElement("option");
+    opt.value = chunk.id;
+    opt.textContent = chunk.name;
+    chunkSelect.appendChild(opt);
   });
   chunkLabel.appendChild(chunkSelect);
   chunkDiv.appendChild(chunkLabel);
@@ -397,10 +397,10 @@ function createHighlightRow() {
   const colorSelect = document.createElement("select");
   colorSelect.classList.add("color-dropdown");
   AVAILABLE_COLORS.forEach(color => {
-    const option = document.createElement("option");
-    option.value = color;
-    option.textContent = color[0].toUpperCase() + color.slice(1);
-    colorSelect.appendChild(option);
+    const opt = document.createElement("option");
+    opt.value = color;
+    opt.textContent = color[0].toUpperCase() + color.slice(1);
+    colorSelect.appendChild(opt);
   });
   colorLabel.appendChild(colorSelect);
   colorDiv.appendChild(colorLabel);
@@ -409,63 +409,70 @@ function createHighlightRow() {
   container.appendChild(chunkDiv);
   container.appendChild(colorDiv);
   
-  // Initialize checkbox states
-  container.dataset.showScaleDegrees = "false";
-  container.dataset.showNoteName = "false";
-
-  // "Scale Degrees" checkbox
-  const scaleContainer = document.createElement("div");
-  scaleContainer.classList.add("scale-container");
-  const scaleCheckbox = document.createElement("input");
-  scaleCheckbox.type = "checkbox";
-  scaleCheckbox.classList.add("scale-checkbox");
+  // Radio buttons for mutually exclusive options
+  const radioDiv = document.createElement("div");
+  const radioGroup = "highlightOption_" + Date.now();
+  const scaleRadio = document.createElement("input");
+  scaleRadio.type = "radio";
+  scaleRadio.name = radioGroup;
+  scaleRadio.value = "scale";
   const scaleLabel = document.createElement("label");
   scaleLabel.textContent = "Scale Degrees";
-  scaleContainer.appendChild(scaleCheckbox);
-  scaleContainer.appendChild(scaleLabel);
-  
-  // "Note Name" checkbox
-  const noteNameContainer = document.createElement("div");
-  noteNameContainer.classList.add("note-name-container");
-  const noteNameCheckbox = document.createElement("input");
-  noteNameCheckbox.type = "checkbox";
-  noteNameCheckbox.classList.add("note-name-checkbox");
-  const noteNameLabel = document.createElement("label");
-  noteNameLabel.textContent = "Note Name";
-  noteNameContainer.appendChild(noteNameCheckbox);
-  noteNameContainer.appendChild(noteNameLabel);
-  
-  // Enforce mutual exclusivity
-  scaleCheckbox.addEventListener("change", () => {
-    if (scaleCheckbox.checked) {
-      noteNameCheckbox.checked = false;
+  const noteRadio = document.createElement("input");
+  noteRadio.type = "radio";
+  noteRadio.name = radioGroup;
+  noteRadio.value = "note";
+  const noteLabel = document.createElement("label");
+  noteLabel.textContent = "Note Name";
+  radioDiv.appendChild(scaleRadio);
+  radioDiv.appendChild(scaleLabel);
+  radioDiv.appendChild(noteRadio);
+  radioDiv.appendChild(noteLabel);
+  container.dataset.showScaleDegrees = "false";
+  container.dataset.showNoteName = "false";
+  scaleRadio.addEventListener("change", () => {
+    if(scaleRadio.checked){
+      container.dataset.showScaleDegrees = "true";
       container.dataset.showNoteName = "false";
     }
-    container.dataset.showScaleDegrees = scaleCheckbox.checked ? "true" : "false";
   });
-  
-  noteNameCheckbox.addEventListener("change", () => {
-    if (noteNameCheckbox.checked) {
-      scaleCheckbox.checked = false;
+  noteRadio.addEventListener("change", () => {
+    if(noteRadio.checked){
+      container.dataset.showNoteName = "true";
       container.dataset.showScaleDegrees = "false";
     }
-    container.dataset.showNoteName = noteNameCheckbox.checked ? "true" : "false";
   });
+  container.appendChild(radioDiv);
   
-  container.appendChild(scaleContainer);
-  container.appendChild(noteNameContainer);
+  const rowNumberLabel = document.createElement("div");
+  rowNumberLabel.classList.add("row-number");
+  container.appendChild(rowNumberLabel);
   
   return container;
 }
-
-function addHighlightDropdownRow() {
-  const container = document.getElementById("highlight-rows-container");
-  const newRow = createHighlightRow();
-  container.appendChild(newRow);
+function updateHighlightRowNumbers() {
+  const rows = document.querySelectorAll(".highlight-row");
+  rows.forEach((row, i) => {
+    const lbl = row.querySelector(".row-number");
+    if(lbl) lbl.textContent = i + 1;
+  });
+}
+function updateCursorHighlightDropdown() {
+  const dd = document.getElementById("cursor-highlight-row-dropdown");
+  dd.innerHTML = '<option value="">None</option>';
+  const rows = document.querySelectorAll(".highlight-row");
+  rows.forEach((_, i) => {
+    const opt = document.createElement("option");
+    opt.value = i + 1;
+    opt.textContent = i + 1;
+    dd.appendChild(opt);
+  });
 }
 
+/****************************
+ *  Apply Highlight Rows
+ ****************************/
 function applyHighlights() {
-  // Clear previous highlightRows
   highlightRows = [];
   const rows = document.querySelectorAll(".highlight-row");
   rows.forEach(row => {
@@ -473,96 +480,106 @@ function applyHighlights() {
     const chunkId = parseInt(row.querySelector(".chunk-dropdown").value, 10);
     const color = row.querySelector(".color-dropdown").value;
     const rootSemitone = semitoneMap[rootVal.toUpperCase()] || 0;
-    const chunkObj = DIATONIC_CHUNKS.find(c => c.id === chunkId);
-    const showScaleDegrees = row.dataset.showScaleDegrees === "true";
-    const showNoteName = row.dataset.showNoteName === "true";
-    if (chunkObj) {
+    const showScale = row.dataset.showScaleDegrees === "true";
+    const showNote = row.dataset.showNoteName === "true";
+    let chunkObj = DIATONIC_CHUNKS.find(c => c.id === chunkId);
+    if(chunkObj){
       highlightRows.push({
-        rootSemitone: rootSemitone,
+        rootSemitone,
         chunk: chunkObj,
-        color: color,
-        showScaleDegrees: showScaleDegrees,
-        showNoteName: showNoteName
+        color,
+        showScaleDegrees: showScale,
+        showNoteName: showNote
       });
     }
   });
   console.log("Applying highlights:", highlightRows);
   createFretboard(getExtraAbove(), getExtraBelow());
+  updateCursorHighlightDropdown();
 }
 
 /****************************
  *  DOM Ready
  ****************************/
-document.addEventListener("DOMContentLoaded", function() {
-  // Load custom tunings and populate tunings dropdown
+document.addEventListener("DOMContentLoaded", () => {
   loadCustomTunings();
   updateTuningsDropdown();
   
-  // Tunings apply button event
   document.getElementById("apply-tuning-button").addEventListener("click", () => {
-    const tuningDropdown = document.getElementById("tunings-dropdown");
-    const selectedTuningName = tuningDropdown.value;
-    let newTuning = TUNINGS[selectedTuningName];
-    if (!newTuning) {
-      newTuning = customTunings[selectedTuningName];
-    }
-    if (newTuning) {
+    const dd = document.getElementById("tunings-dropdown");
+    const sel = dd.value;
+    let newTuning = TUNINGS[sel] || customTunings[sel];
+    if(newTuning){
       setTuning(newTuning);
       createFretboard(getExtraAbove(), getExtraBelow());
     }
   });
   
-  // Save current tuning button event
   document.getElementById("save-tuning-button").addEventListener("click", () => {
-    const nameInput = document.getElementById("custom-tuning-name");
-    const name = nameInput.value.trim();
-    if (!name) {
+    const inp = document.getElementById("custom-tuning-name");
+    const name = inp.value.trim();
+    if(!name){
       alert("Please enter a name for your tuning.");
       return;
     }
-    // Save the current tuning (clone the tuning array)
     customTunings[name] = tuning.slice();
     saveCustomTunings();
     updateTuningsDropdown();
-    nameInput.value = "";
+    inp.value = "";
   });
   
-  // Remove tuning button event
   document.getElementById("remove-tuning-button").addEventListener("click", () => {
-    const tuningDropdown = document.getElementById("tunings-dropdown");
-    const selectedTuningName = tuningDropdown.value;
-    // Only remove if it's a custom tuning
-    if (TUNINGS[selectedTuningName] !== undefined) {
+    const dd = document.getElementById("tunings-dropdown");
+    const sel = dd.value;
+    if(TUNINGS[sel] !== undefined){
       alert("Predefined tunings cannot be removed.");
       return;
     }
-    delete customTunings[selectedTuningName];
+    delete customTunings[sel];
     saveCustomTunings();
     updateTuningsDropdown();
   });
   
-  // Extra rows toggle and apply
-  const toggle = document.getElementById("extra-rows-toggle");
-  const extraRowsInput = document.getElementById("extra-rows-input");
-  
-  toggle.addEventListener("change", () => {
-    extraRowsInput.style.display = toggle.checked ? "block" : "none";
+  const extraToggle = document.getElementById("extra-rows-toggle");
+  const extraInput = document.getElementById("extra-rows-input");
+  extraToggle.addEventListener("change", () => {
+    extraInput.style.display = extraToggle.checked ? "block" : "none";
     createFretboard(getExtraAbove(), getExtraBelow());
   });
-  
   document.getElementById("apply-extra-rows").addEventListener("click", () => {
     createFretboard(getExtraAbove(), getExtraBelow());
   });
   
-  // Create an initial highlight dropdown row
-  const container = document.getElementById("highlight-rows-container");
-  container.appendChild(createHighlightRow());
-  
-  // Add row and apply button events
-  document.getElementById("add-row-button").addEventListener("click", addHighlightDropdownRow);
+  const hContainer = document.getElementById("highlight-rows-container");
+  hContainer.appendChild(createHighlightRow());
+  updateHighlightRowNumbers();
+  updateCursorHighlightDropdown();
+  document.getElementById("add-row-button").addEventListener("click", () => {
+    hContainer.appendChild(createHighlightRow());
+    updateHighlightRowNumbers();
+    updateCursorHighlightDropdown();
+  });
   document.getElementById("apply-button").addEventListener("click", applyHighlights);
   
-  // Initial fretboard render
+  // Cursor Activation button & options
+  const cursorBtn = document.getElementById("cursor-activation-button");
+  const cursorOpts = document.getElementById("cursor-activation-options");
+  cursorBtn.addEventListener("click", () => {
+    cursorActivationActive = !cursorActivationActive;
+    cursorBtn.textContent = `Cursor Activation: ${cursorActivationActive ? "On" : "Off"}`;
+    cursorOpts.style.display = cursorActivationActive ? "block" : "none";
+  });
+  // Show/hide row selection based on radio choice
+  const modeNote = document.getElementById("cursor-mode-note");
+  const modeRow = document.getElementById("cursor-mode-row");
+  const cursorRowSel = document.getElementById("cursor-row-selection");
+  modeNote.addEventListener("change", () => {
+    if(modeNote.checked) cursorRowSel.style.display = "none";
+  });
+  modeRow.addEventListener("change", () => {
+    if(modeRow.checked) cursorRowSel.style.display = "block";
+  });
+  
   createFretboard(getExtraAbove(), getExtraBelow());
 });
 

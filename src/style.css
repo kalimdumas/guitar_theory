@@ -154,6 +154,7 @@ h1 {
   transform: translateY(-50%);
 }
 
+/* Existing highlight styling */
 .fret-highlight {
   position: absolute;
   top: 50%;
@@ -168,7 +169,23 @@ h1 {
   z-index: 1;
 }
 
-/* New: Scale degree or Note Name text over the string */
+/* Hover overlay: white circle with note name */
+.fret-cursor-hover {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 15px;
+  height: 15px;
+  border-radius: 50%;
+  background-color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 3;
+}
+
+/* Scale degree / note text styling */
 .fret-scale-text {
   position: absolute;
   top: 50%;
@@ -180,6 +197,18 @@ h1 {
   pointer-events: none;
 }
 
+/* New: Cursor activation container styling */
+#cursor-activation-container {
+  margin-bottom: 15px;
+}
+
+/* New: In each highlight row, display the row number at the far right */
+.highlight-row .row-number {
+  margin-left: auto;
+  font-weight: bold;
+}
+
+/* Responsive adjustments */
 @media (max-width: 600px) {
   .fret {
     width: 30px;

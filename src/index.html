@@ -11,28 +11,62 @@
   <p>Welcome to the guitar music theory visualization tool.</p>
 
   <div id="main-container">
-    <!-- Left panel for tunings, extra rows & highlight controls -->
+    <!-- Left panel for controls -->
     <div id="control-panel">
-      <!-- Tunings dropdown and custom tuning saver -->
+      <!-- Cursor Activation Panel -->
+      <div id="cursor-activation-container">
+        <button id="cursor-activation-button">Cursor Activation: Off</button>
+        <div id="cursor-activation-options" style="display: none;">
+          <label>
+            Color:
+            <select id="cursor-color-dropdown">
+              <option value="red">Red</option>
+              <option value="blue">Blue</option>
+              <option value="green">Green</option>
+              <option value="yellow">Yellow</option>
+              <option value="purple">Purple</option>
+              <option value="orange">Orange</option>
+            </select>
+          </label>
+          <div>
+            <label>
+              <input type="radio" name="cursor-mode" id="cursor-mode-note" value="note" checked>
+              Display Note Name
+            </label>
+            <label>
+              <input type="radio" name="cursor-mode" id="cursor-mode-row" value="row">
+              Highlight Row
+            </label>
+          </div>
+          <div id="cursor-row-selection" style="display: none;">
+            <label>
+              Select Highlight Row:
+              <select id="cursor-highlight-row-dropdown">
+                <option value="">None</option>
+              </select>
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tunings panel -->
       <div id="tunings-panel">
         <label for="tunings-dropdown">Tunings:</label>
         <select id="tunings-dropdown"></select>
         <button id="apply-tuning-button">Apply</button>
         <br>
-        <!-- New: remove tuning button -->
         <button id="remove-tuning-button">Remove</button>
         <br>
-        <!-- New: input and button for saving current tuning -->
         <input type="text" id="custom-tuning-name" placeholder="Name tuning">
         <button id="save-tuning-button">Save Current Tuning</button>
       </div>
       
-      <!-- Extra rows toggle and inputs -->
+      <!-- Extra rows toggle and inputs (hidden by default) -->
       <label>
          <input type="checkbox" id="extra-rows-toggle">
          Additional Stringrows
       </label>
-      <div id="extra-rows-input">
+      <div id="extra-rows-input" style="display:none;">
          <label>Rows Above:
            <input type="number" id="rows-above" value="5" min="0">
          </label>
@@ -44,7 +78,7 @@
          <button id="apply-extra-rows">Apply</button>
       </div>
 
-      <!-- Highlight dropdowns container and buttons -->
+      <!-- Highlight panel -->
       <div id="highlight-panel">
         <div id="highlight-rows-container"></div>
         <button id="add-row-button">Add Row</button>
