@@ -61,11 +61,14 @@
         <button id="save-tuning-button">Save Current Tuning</button>
       </div>
       
-      <!-- Extra rows toggle and inputs (hidden by default) -->
-      <label>
-         <input type="checkbox" id="extra-rows-toggle">
-         Additional Stringrows
-      </label>
+      <!-- Extra rows toggle and inputs -->
+      <div>
+        <label>
+           <input type="checkbox" id="extra-rows-toggle">
+           Additional Stringrows
+        </label>
+        <button id="fretboard2-toggle">Fretboard 2: Off</button>
+      </div>
       <div id="extra-rows-input" style="display:none;">
          <label>Rows Above:
            <input type="number" id="rows-above" value="5" min="0">
@@ -86,8 +89,15 @@
       </div>
     </div>
 
-    <!-- Fretboard on the right -->
-    <div id="fretboard"></div>
+    <!-- Fretboards container on the right -->
+    <div id="fretboards-container">
+      <h2>Fretboard 1</h2>
+      <div id="fretboard1" class="fretboard"></div>
+      <div id="fretboard2-container" style="display: none;">
+        <h2>Fretboard 2</h2>
+        <div id="fretboard2" class="fretboard"></div>
+      </div>
+    </div>
   </div>
 
   <script src="script.js"></script>

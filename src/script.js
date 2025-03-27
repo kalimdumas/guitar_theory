@@ -47,11 +47,14 @@ const ROOT_NOTES = Object.keys(semitoneMap);
 const AVAILABLE_COLORS = ["red", "blue", "green", "yellow", "purple", "orange"];
 let customTuning = null;
 let tuning = customTuning ? customTuning : STANDARD_TUNING;
-let highlightRows = []; // from applied highlight rows
-// manualHighlights holds overrides (both additions and removals)
-// key: "stringIndex_fretNumber" => { removed, color, showNoteName, showScaleDegrees, highlightRowIndex, highlightRowData }
+
+// Each highlight row now includes a 'fretboard' property ("1" or "2")
+let highlightRows = [];
+// manualHighlights: key = "fretboard_index_fret" => { removed, color, showNoteName, showScaleDegrees, highlightRowIndex, highlightRowData }
 let manualHighlights = {};
 let cursorActivationActive = false;
+// New: control whether Fretboard 2 is active
+let fretboard2Active = false;
 
 /****************************
  *  Helper Functions
@@ -97,10 +100,12 @@ function updateTuningsDropdown() {
 
 /****************************
  *  getHighlightForFretValue
+ *  (Applies only for a given fretboard.)
  ****************************/
-function getHighlightForFretValue(fretValue) {
+function getHighlightForFretValue(fretValue, fretboardId) {
   let result = null;
   highlightRows.forEach(row => {
+    if (row.fretboard !== fretboardId) return;
     let diff = (fretValue - row.rootSemitone) % 12;
     diff = (diff + 12) % 12;
     if (row.chunk.values.includes(diff)) {
@@ -118,8 +123,9 @@ function getHighlightForFretValue(fretValue) {
 
 /****************************
  *  Create a Single String Row
+ *  Now accepts an extra parameter 'fretboardId'
  ****************************/
-function createStringRow(value, interactive, index, customLabel) {
+function createStringRow(value, interactive, index, customLabel, fretboardId) {
   const row = document.createElement("div");
   row.classList.add("string-row");
   if (!interactive) row.classList.add("extra");
@@ -137,21 +143,23 @@ function createStringRow(value, interactive, index, customLabel) {
   const stringLabel = document.createElement("div");
   stringLabel.classList.add("string-label");
   stringLabel.textContent = customLabel !== undefined ? customLabel : getNoteNameFromValue(value);
+  
   if (interactive) {
     upArrow.addEventListener("click", () => {
       tuning[index] = (tuning[index] + 1) % 12;
       stringLabel.textContent = getNoteNameFromValue(tuning[index]);
-      createFretboard(getExtraAbove(), getExtraBelow());
+      updateAllFretboards();
     });
     downArrow.addEventListener("click", () => {
       tuning[index] = (tuning[index] + 11) % 12;
       stringLabel.textContent = getNoteNameFromValue(tuning[index]);
-      createFretboard(getExtraAbove(), getExtraBelow());
+      updateAllFretboards();
     });
   } else {
     upArrow.classList.add("hide-arrow");
     downArrow.classList.add("hide-arrow");
   }
+  
   arrowContainer.appendChild(upArrow);
   arrowContainer.appendChild(downArrow);
   labelContainer.appendChild(arrowContainer);
@@ -168,17 +176,17 @@ function createStringRow(value, interactive, index, customLabel) {
     if (interactive && index !== undefined) {
       fret.dataset.stringIndex = index;
       fret.dataset.fretNumber = f;
+      fret.dataset.fretboard = fretboardId;
     }
     
-    let key = interactive && index !== undefined ? `${index}_${f}` : null;
+    // Build a key including the fretboard id
+    let key = interactive && index !== undefined ? `${fretboardId}_${index}_${f}` : null;
     let highlight = null;
     if (key && manualHighlights[key]) {
       let m = manualHighlights[key];
       if (m.removed) {
-        // Removal override: show nothing.
         highlight = null;
       } else {
-        // If using a manual highlight, compute properties.
         if (m.showScaleDegrees && m.highlightRowData) {
           let diff = (fretValue - m.highlightRowData.rootSemitone) % 12;
           diff = (diff + 12) % 12;
@@ -190,7 +198,7 @@ function createStringRow(value, interactive, index, customLabel) {
         highlight = m;
       }
     } else {
-      highlight = getHighlightForFretValue(fretValue);
+      highlight = getHighlightForFretValue(fretValue, fretboardId);
     }
     
     if (highlight) {
@@ -231,16 +239,13 @@ function createStringRow(value, interactive, index, customLabel) {
     // Cursor click for manual highlight/removal
     fret.addEventListener("click", () => {
       if (!cursorActivationActive || !key) return;
-      // If already manually overridden, remove it.
       if (manualHighlights[key]) {
         delete manualHighlights[key];
       } else {
-        // If a default highlight exists (via a highlight row), add a removal override.
-        let defaultHL = getHighlightForFretValue(fretValue);
+        let defaultHL = getHighlightForFretValue(fretValue, fretboardId);
         if (defaultHL) {
           manualHighlights[key] = { removed: true };
         } else {
-          // Otherwise, add a new manual highlight per cursor settings.
           const selColor = document.getElementById("cursor-color-dropdown").value;
           const modeNote = document.getElementById("cursor-mode-note").checked;
           const modeRow = document.getElementById("cursor-mode-row").checked;
@@ -265,7 +270,7 @@ function createStringRow(value, interactive, index, customLabel) {
           manualHighlights[key] = manual;
         }
       }
-      createFretboard(getExtraAbove(), getExtraBelow());
+      updateAllFretboards();
     });
     
     row.appendChild(fret);
@@ -275,10 +280,11 @@ function createStringRow(value, interactive, index, customLabel) {
 
 /****************************
  *  Build the Fretboard
+ *  Accepts parameter 'fretboardId' ("1" or "2")
  ****************************/
-function createFretboard(extraAbove = 5, extraBelow = 5) {
-  const fretboard = document.getElementById("fretboard");
-  fretboard.innerHTML = "";
+function createFretboard(fretboardId, extraAbove = 5, extraBelow = 5) {
+  const container = document.getElementById("fretboard" + fretboardId);
+  container.innerHTML = "";
   
   const mainLabels = tuning.map(getNoteNameFromValue);
   let cycle = (mainLabels[0] === mainLabels[mainLabels.length - 1])
@@ -286,22 +292,42 @@ function createFretboard(extraAbove = 5, extraBelow = 5) {
     : mainLabels.slice();
   const reverseCycle = cycle.slice().reverse();
   
+  // Extra rows above
   for (let i = 0; i < extraAbove; i++) {
     const label = reverseCycle[i % reverseCycle.length];
-    const row = createStringRow(0, false, undefined, label);
-    fretboard.insertBefore(row, fretboard.firstChild);
+    const row = createStringRow(0, false, undefined, label, fretboardId);
+    container.insertBefore(row, container.firstChild);
   }
+  // Main interactive rows
   tuning.forEach((value, index) => {
-    const row = createStringRow(value, true, index);
-    fretboard.appendChild(row);
+    const row = createStringRow(value, true, index, undefined, fretboardId);
+    container.appendChild(row);
   });
+  // Extra rows below
   const bottomLabel = mainLabels[mainLabels.length - 1];
   const bottomIndex = cycle.indexOf(bottomLabel);
   for (let i = 1; i <= extraBelow; i++) {
     const labelIndex = (bottomIndex + i) % cycle.length;
     const label = cycle[labelIndex];
-    const row = createStringRow(0, false, undefined, label);
-    fretboard.appendChild(row);
+    const row = createStringRow(0, false, undefined, label, fretboardId);
+    container.appendChild(row);
+  }
+}
+
+/****************************
+ *  Update Both Fretboards
+ ****************************/
+function updateAllFretboards() {
+  let extraAbove = getExtraAbove();
+  let extraBelow = getExtraBelow();
+  createFretboard("1", extraAbove, extraBelow);
+  // Only update Fretboard 2 if it's active; otherwise hide its container
+  const fb2Container = document.getElementById("fretboard2-container");
+  if (fretboard2Active) {
+    fb2Container.style.display = "block";
+    createFretboard("2", extraAbove, extraBelow);
+  } else {
+    fb2Container.style.display = "none";
   }
 }
 
@@ -323,6 +349,7 @@ function getExtraBelow() {
 function createHighlightRow() {
   const container = document.createElement("div");
   container.classList.add("highlight-row");
+  
   const reorder = document.createElement("div");
   reorder.classList.add("reorder-container");
   const upBtn = document.createElement("button");
@@ -349,6 +376,7 @@ function createHighlightRow() {
   });
   reorder.appendChild(upBtn);
   reorder.appendChild(downBtn);
+  
   const removeBtn = document.createElement("button");
   removeBtn.textContent = "Remove";
   removeBtn.classList.add("remove-button");
@@ -374,6 +402,7 @@ function createHighlightRow() {
   });
   rootLabel.appendChild(rootSelect);
   rootDiv.appendChild(rootLabel);
+  container.appendChild(rootDiv);
   
   // Chunk dropdown
   const chunkDiv = document.createElement("div");
@@ -389,6 +418,7 @@ function createHighlightRow() {
   });
   chunkLabel.appendChild(chunkSelect);
   chunkDiv.appendChild(chunkLabel);
+  container.appendChild(chunkDiv);
   
   // Color dropdown
   const colorDiv = document.createElement("div");
@@ -404,10 +434,23 @@ function createHighlightRow() {
   });
   colorLabel.appendChild(colorSelect);
   colorDiv.appendChild(colorLabel);
-  
-  container.appendChild(rootDiv);
-  container.appendChild(chunkDiv);
   container.appendChild(colorDiv);
+  
+  // New: Fretboard selection dropdown
+  const fbDiv = document.createElement("div");
+  const fbLabel = document.createElement("label");
+  fbLabel.textContent = "Fretboard: ";
+  const fbSelect = document.createElement("select");
+  fbSelect.classList.add("fretboard-dropdown");
+  ["1", "2"].forEach(num => {
+    const opt = document.createElement("option");
+    opt.value = num;
+    opt.textContent = "Fretboard " + num;
+    fbSelect.appendChild(opt);
+  });
+  fbLabel.appendChild(fbSelect);
+  fbDiv.appendChild(fbLabel);
+  container.appendChild(fbDiv);
   
   // Radio buttons for mutually exclusive options
   const radioDiv = document.createElement("div");
@@ -444,6 +487,7 @@ function createHighlightRow() {
   });
   container.appendChild(radioDiv);
   
+  // Row number label
   const rowNumberLabel = document.createElement("div");
   rowNumberLabel.classList.add("row-number");
   container.appendChild(rowNumberLabel);
@@ -483,18 +527,20 @@ function applyHighlights() {
     const showScale = row.dataset.showScaleDegrees === "true";
     const showNote = row.dataset.showNoteName === "true";
     let chunkObj = DIATONIC_CHUNKS.find(c => c.id === chunkId);
+    const fretboardTarget = row.querySelector(".fretboard-dropdown").value;
     if(chunkObj){
       highlightRows.push({
         rootSemitone,
         chunk: chunkObj,
         color,
         showScaleDegrees: showScale,
-        showNoteName: showNote
+        showNoteName: showNote,
+        fretboard: fretboardTarget
       });
     }
   });
   console.log("Applying highlights:", highlightRows);
-  createFretboard(getExtraAbove(), getExtraBelow());
+  updateAllFretboards();
   updateCursorHighlightDropdown();
 }
 
@@ -511,7 +557,7 @@ document.addEventListener("DOMContentLoaded", () => {
     let newTuning = TUNINGS[sel] || customTunings[sel];
     if(newTuning){
       setTuning(newTuning);
-      createFretboard(getExtraAbove(), getExtraBelow());
+      updateAllFretboards();
     }
   });
   
@@ -544,10 +590,18 @@ document.addEventListener("DOMContentLoaded", () => {
   const extraInput = document.getElementById("extra-rows-input");
   extraToggle.addEventListener("change", () => {
     extraInput.style.display = extraToggle.checked ? "block" : "none";
-    createFretboard(getExtraAbove(), getExtraBelow());
+    updateAllFretboards();
   });
   document.getElementById("apply-extra-rows").addEventListener("click", () => {
-    createFretboard(getExtraAbove(), getExtraBelow());
+    updateAllFretboards();
+  });
+  
+  // Fretboard 2 toggle button
+  const fb2Toggle = document.getElementById("fretboard2-toggle");
+  fb2Toggle.addEventListener("click", () => {
+    fretboard2Active = !fretboard2Active;
+    fb2Toggle.textContent = `Fretboard 2: ${fretboard2Active ? "On" : "Off"}`;
+    updateAllFretboards();
   });
   
   const hContainer = document.getElementById("highlight-rows-container");
@@ -569,7 +623,6 @@ document.addEventListener("DOMContentLoaded", () => {
     cursorBtn.textContent = `Cursor Activation: ${cursorActivationActive ? "On" : "Off"}`;
     cursorOpts.style.display = cursorActivationActive ? "block" : "none";
   });
-  // Show/hide row selection based on radio choice
   const modeNote = document.getElementById("cursor-mode-note");
   const modeRow = document.getElementById("cursor-mode-row");
   const cursorRowSel = document.getElementById("cursor-row-selection");
@@ -580,6 +633,6 @@ document.addEventListener("DOMContentLoaded", () => {
     if(modeRow.checked) cursorRowSel.style.display = "block";
   });
   
-  createFretboard(getExtraAbove(), getExtraBelow());
+  updateAllFretboards();
 });
 

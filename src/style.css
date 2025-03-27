@@ -11,6 +11,10 @@ h1 {
   margin-top: 20px;
 }
 
+h2 {
+  margin: 10px 0;
+}
+
 /* Main container: side-by-side on larger screens, stacked on smaller */
 #main-container {
   display: flex;
@@ -38,8 +42,15 @@ h1 {
   margin-bottom: 10px;
 }
 
-/* Fretboard container */
-#fretboard {
+/* Fretboards container on the right */
+#fretboards-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+/* Each fretboard container */
+.fretboard {
   display: inline-block;
   padding: 10px;
   border: 2px solid #fff;
@@ -169,7 +180,7 @@ h1 {
   z-index: 1;
 }
 
-/* Hover overlay: white circle with note name */
+/* Cursor hover overlay */
 .fret-cursor-hover {
   position: absolute;
   top: 50%;
@@ -197,12 +208,12 @@ h1 {
   pointer-events: none;
 }
 
-/* New: Cursor activation container styling */
+/* Cursor activation container styling */
 #cursor-activation-container {
   margin-bottom: 15px;
 }
 
-/* New: In each highlight row, display the row number at the far right */
+/* In each highlight row, display the row number at the far right */
 .highlight-row .row-number {
   margin-left: auto;
   font-weight: bold;
